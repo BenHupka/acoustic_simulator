@@ -2,7 +2,7 @@
 # https://answers.ros.org/question/298740/ros2-c-and-python-in-same-package-is-it-possible/
 
 cmake_minimum_required(VERSION 3.5)
-project(visual_localization)
+project(acoustic_simulator)
 if(NOT CMAKE_CXX_STANDARD)
   set(CMAKE_CXX_STANDARD 17)
 endif()
@@ -40,7 +40,7 @@ ament_python_install_package(${PROJECT_NAME})
 
 # Install Python executables
 install(PROGRAMS
-  nodes/vision_ekf_node
+  nodes/depth_estimator_node
   DESTINATION lib/${PROJECT_NAME}
 )
 
