@@ -1,6 +1,6 @@
 #!/usr/bin/env python
-from .packet_class import packet
-from .soundwave_class import soundwave_cl
+from packet_class import packet
+from soundwave_class import soundwave_cl
 import numpy as np
 import json
 import os
@@ -13,7 +13,7 @@ class modem:
                  dst, packetType):
         tmp = os.path.dirname(__file__)
         file_path_filter = os.path.join(tmp,
-                                        '../../config/acoustic_config.json')
+                                        '../config/acoustic_config.json')
         f = open(file_path_filter)
         self.config = json.load(f)
         f.close()

@@ -3,7 +3,7 @@ class soundwave_cl:
 
     def __init__(self, position, packet):
         self.radius = 0
-        self.radius_t_1 = 0
+        self.radius_t_1 = 0   # at timestep t-1
         self.position = position
         self.packet = packet
 

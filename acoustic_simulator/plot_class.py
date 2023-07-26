@@ -179,3 +179,6 @@ class plot():
         self.plotMeas(meas_data)
         #self.plotXoverTime()
         self.plotErroverTime()
+
+    def show_plots(self):
+        plt.show()

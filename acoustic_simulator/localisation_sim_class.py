@@ -5,11 +5,11 @@ from tqdm import tqdm
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.axes as ax
-from .UKF_class import UKF
-from .EKF_class import EKF
-import rospy
-from .process_model_class import ProcessModelVelecitiesGlobal
-from .meas_model_class import MeasurementModelDistances
+from UKF_class import UKF
+from EKF_class import EKF
+#import rospy
+from process_model_class import ProcessModelVelecitiesGlobal
+from meas_model_class import MeasurementModelDistances
 from collections import deque
 import threading
 from nav_msgs.msg import Odometry
@@ -26,12 +26,12 @@ class localisationSimulation():
 
         tmp = os.path.dirname(__file__)
         file_path_filter = os.path.join(tmp,
-                                        '../../config/acoustic_config.json')
+                                        '../config/acoustic_config.json')
         f = open(file_path_filter)
         self.acoustic_config = json.load(f)
         f.close()
 
-        file_path_filter = os.path.join(tmp, '../../config/filter_config.json')
+        file_path_filter = os.path.join(tmp, '../config/filter_config.json')
         f = open(file_path_filter)
         self.filter_config = json.load(f)
         f.close()

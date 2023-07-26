@@ -9,7 +9,7 @@ class packet:
 
         tmp = os.path.dirname(__file__)
         file_path_filter = os.path.join(tmp,
-                                        '../../config/acoustic_config.json')
+                                        '../config/acoustic_config.json')
         f = open(file_path_filter)
         self.acoustic_config = json.load(f)
         f.close()

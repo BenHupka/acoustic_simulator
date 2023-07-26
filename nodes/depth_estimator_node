@@ -9,7 +9,6 @@ from sensor_msgs.msg import FluidPressure
 from hippo_msgs.msg import DepthStamped
 
 import numpy as np
-import yaml
 
 
 @dataclass

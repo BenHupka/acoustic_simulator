@@ -3,19 +3,46 @@ import rclpy
 from rcl_interfaces.msg import (ParameterDescriptor, ParameterType)
 from rclpy.node import Node
 from nav_msgs.msg import Odometry
+from hippo_msgs.msg import DepthStamped
+from acoustic_simulator.datawriter_class import datawriter
+from acoustic_simulator.acoustic_sim_class import acousticSimulation
+from acoustic_simulator.localisation_sim_class import localisationSimulation
+from acoustic_simulator.dataloader_class import dataLoader
 
 import numpy as np
 import yaml
-
+import threading
 
 class TesterNode(Node):
 
     def __init__(self, node_name):
         super().__init__(node_name=node_name)
 
+        self.t0 = 0.0
+        self.dt = 0.0
+        self.t = self.t0
+        self.z = None
+        self.x0 = self.filter_config["config"][1]["settings"]["InitState"]
+
+
+        self.lock = threading.RLock()
+        self.position = [0.0, 0.0, 0.0]
+        self.velocity = [0.0, 0.0, 0.0]
+        self.depth = 0.0
+        
+        self.f_pre = self.filter_config["config"][0]["RosRun"]
+        self.f_ac = self.acoustic_config["config"][0]["FrequencyAcousticSim"]
+        
+        self.acoustic_sim = acousticSimulation()
+        self.localisation_sim = localisationSimulation()
+        self.dataloader = dataLoader()
+        self.dataWriter = datawriter()
+
         self.depth_pub = self.create_publisher(DepthStamped,
                                                'depth',
                                                qos_profile=1)
+
+        self.acou_pub = self.create_publisher(PointStamped, )
 
         self.pressure_sub = self.create_subscription(Odometry,
                                                      'pressure',
@@ -28,7 +55,12 @@ class TesterNode(Node):
         #                                           callback=self.send_depth)
 
     def on_odometry(self, msg: Odometry):
-        
+        p = msg.pose.pose.position
+        v = msg.twist.twist.linear
+        with self.lock:
+            self.position = [p.x, p.y, p.z]
+            self.velocity = [v.x, v.y, v.z]
+
 
     def send_measurements(self):
         msg = DepthStamped()

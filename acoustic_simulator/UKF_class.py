@@ -33,7 +33,7 @@ class UKF():
             self.Q (np.array) - 1x1 Covarianzmatrix of Rt (Ot)
         """
         tmp = os.path.dirname(__file__)
-        file_path_filter = os.path.join(tmp, '../../config/filter_config.json')
+        file_path_filter = os.path.join(tmp, '../config/filter_config.json')
         f = open(file_path_filter)
         self.filter_config = json.load(f)
         f.close()

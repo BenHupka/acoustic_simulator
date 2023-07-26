@@ -33,6 +33,7 @@ class dataLoader():
         # print(f"Anchor2: {self.UTMLon0-self.UTMLon0}/{self.UTMLat0-self.UTMLat0}")
         # print(f"Anchor3: {self.UTMLonA3-self.UTMLon0}/{self.UTMLatA3-self.UTMLat0}")
         # print(f"Anchor4: {self.UTMLonA4-self.UTMLon0}/{self.UTMLatA4-self.UTMLat0}")
+        self.gps_data_file = "Data/circle/circle_Gps.csv"
 
     def writeNewFile(self):
 
@@ -121,7 +122,8 @@ class dataLoader():
 
     def inputClearedData(self):
         mat_gps = []
-        with open(os.path.join(tmp, "Data/100Hz_circle20m_02513ms.csv")) as f:
+        data_file = "Data/real_Gpstrack_100Hz.csv"
+        with open(os.path.join(tmp, data_file)) as f:
             reader = csv.reader(f, delimiter=",")
             for row in reader:
                 mat_gps.append(row)

@@ -2,7 +2,7 @@
 
 import numpy as np
 from collections import deque
-from .modem_class import modem
+from modem_class import modem
 import json
 import os
 
@@ -13,7 +13,7 @@ class acousticSimulation:
 
         tmp = os.path.dirname(__file__)
         file_path_filter = os.path.join(tmp,
-                                        '../../config/acoustic_config.json')
+                                        '../config/acoustic_config.json')
         f = open(file_path_filter)
         self.config = json.load(f)
         f.close()
