@@ -2,8 +2,9 @@
 import rclpy
 from rcl_interfaces.msg import (ParameterDescriptor, ParameterType)
 from rclpy.node import Node
+import rclpy.time
 from nav_msgs.msg import Odometry
-from hippo_msgs.msg import DepthStamped
+from acoustic_simulator.msg import ModemOut
 from acoustic_simulator.datawriter_class import datawriter
 from acoustic_simulator.acoustic_sim_class import acousticSimulation
 from acoustic_simulator.localisation_sim_class import localisationSimulation
@@ -28,31 +29,31 @@ class TesterNode(Node):
         self.lock = threading.RLock()
         self.position = [0.0, 0.0, 0.0]
         self.velocity = [0.0, 0.0, 0.0]
-        self.depth = 0.0
-        
-        self.f_pre = self.filter_config["config"][0]["RosRun"]
-        self.f_ac = self.acoustic_config["config"][0]["FrequencyAcousticSim"]
+
+        self.rate_accoustics = 1000  # Hz
         
         self.acoustic_sim = acousticSimulation()
-        self.localisation_sim = localisationSimulation()
-        self.dataloader = dataLoader()
-        self.dataWriter = datawriter()
 
-        self.depth_pub = self.create_publisher(DepthStamped,
-                                               'depth',
+        self.modem_pub = self.create_publisher(ModemOut,  # all messages in same topic?
+                                               'modems',
                                                qos_profile=1)
 
-        self.acou_pub = self.create_publisher(PointStamped, )
-
-        self.pressure_sub = self.create_subscription(Odometry,
-                                                     'pressure',
-                                                     self.on_pressure,
+        self.odometry_sub = self.create_subscription(Odometry,
+                                                     'odometry',
+                                                     self.on_odometry,
                                                      qos_profile=1)
 
-        self.predict_timer = self.create_timer(timer_period_sec=(1 / 30),
-                                               callback=self.predict)
-        # self.send_depth_timer = self.create_timer(timer_period_sec=(1 / 30),
-        #                                           callback=self.send_depth)
+        self.acoustics_timer = self.create_timer(timer_period_sec=(1 / self.rate_accoustics),
+                                               callback=self.simulate_acoustics)
+
+    def simulate_acoustics(self):
+        t = self.get_clock().now()
+
+        # TODO: t should be a Time and not a duration according to Nils? This is a ROS Duration object though!
+
+        with self.lock:
+            measurement = self.acoustic_sim.simulate(self.position, t)  # moving buoys?
+            # self.publish_velocity(t, self.send_velocity)  # what's this for?
 
     def on_odometry(self, msg: Odometry):
         p = msg.pose.pose.position
@@ -62,15 +63,21 @@ class TesterNode(Node):
             self.velocity = [v.x, v.y, v.z]
 
 
-    def send_measurements(self):
-        msg = DepthStamped()
-        msg.header.stamp = self.get_clock().now().to_msg()
-        msg.header.frame_id = 'map'
-        msg.depth = self.ekf.get_x_est()[0, 0]
-        msg.z_vel = self.ekf.get_x_est()[1, 0]
-        msg.depth_covariance = self.ekf.get_p_mat()[0, 0]
-        msg.vel_covariance = self.ekf.get_p_mat()[1, 1]
-        self.depth_pub.publish(msg)
+    def send_measurement(self, t: float, id: int, dist: float):
+        msg = ModemOut()
+        msg.timestamp = self.get_clock().now().to_msg(t)  # TODO: Should be time of ??
+        msg.dist = dist
+        msg.id = id
+        
+        self.modem_pub.publish(msg)
+
+    def send_velocity(t, self):
+        # Nils Implementierung: 
+        msg = PointStamped()
+        msg.header.stamp = self.get_cloc
+        pass
+
+
 
 
 def main():
