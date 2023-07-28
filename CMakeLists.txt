@@ -28,16 +28,6 @@ find_package(hippo_msgs REQUIRED)
 #   dynamic_reconfigure
 # )
 
-include_directories(
-  include
-)
-
-# rosidl_generate_interfaces(${PROJECT_NAME}
-#   "msg/ModemOut.msg"
-#   DEPENDENCIES builtin_interfaces std_msgs
-# )
-
-
 
 # Install Python modules
 ament_python_install_package(${PROJECT_NAME})
@@ -47,7 +37,6 @@ ament_python_install_package(${PROJECT_NAME})
 
 # Install Python executables
 install(PROGRAMS
-  nodes/depth_estimator_node
   nodes/sim_anchor_measurements_node
   DESTINATION lib/${PROJECT_NAME}
 )

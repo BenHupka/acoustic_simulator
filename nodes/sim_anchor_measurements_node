@@ -2,6 +2,7 @@
 import rclpy
 from rclpy.node import Node
 from nav_msgs.msg import Odometry
+from std_msgs.msg import Header
 from hippo_msgs.msg import ModemOut
 from acoustic_simulator.acoustic_sim_class import acousticSimulation
 
@@ -45,6 +46,12 @@ class SimulateAnchorMeasurementsNode(Node):
             pub = self.create_publisher(ModemOut, topic_name, qos_profile=1)
             self.modem_publisher_list.append(pub)
 
+        self.modem_error_publisher_list = []
+        for i in range(self.number_anchor_modems):
+            topic_name = 'modem_error' + str(i + 1)
+            pub = self.create_publisher(ModemOut, topic_name, qos_profile=1)
+            self.modem_error_publisher_list.append(pub)
+
         self.odometry_sub = self.create_subscription(Odometry,
                                                      'odometry',
                                                      self.on_odometry,
@@ -77,10 +84,8 @@ class SimulateAnchorMeasurementsNode(Node):
 
     def send_measurement(self, id: int, dist: float, t: float):
         msg = ModemOut()
-        # convert float seconds to int seconds + int nanoseconds be compatible with time stamp msg type
-        msg.header.stamp.sec = int(t)
-        msg.header.stamp.nanosec = int((t - int(t)) * 1e9)
-        msg.dist = dist
+        msg.header = self.fill_header_timestamp(t)
+        msg.distance = dist
         msg.id = id
 
         # publish all measurements in same topic
@@ -88,6 +93,23 @@ class SimulateAnchorMeasurementsNode(Node):
 
         # publish measurement in modem-specific topic
         self.modem_publisher_list[id - 1].publish(msg)
+
+    def send_distance_error(self, id: int, err: float, t: float):
+        # TODO: add 'error' entry to ModemOut instead
+        msg = ModemOut()
+        msg.header = self.fill_header_timestamp(t)
+        msg.distance = err
+        msg.id = id
+
+        self.modem_error_publisher_list[id - 1].publish(msg)
+
+    def fill_header_timestamp(self, t):
+        # convert float seconds to int seconds + int nanoseconds
+        # to be compatible with time stamp msg type
+        header = Header()
+        header.stamp.sec = int(t)
+        header.stamp.nanosec = int((t - int(t)) * 1e9)
+        return header
 
 
 def main():
