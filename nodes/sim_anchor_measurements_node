@@ -9,7 +9,7 @@ import threading
 import json
 
 
-class TesterNode(Node):
+class SimulateAnchorMeasurementsNode(Node):
 
     def __init__(self, node_name):
         super().__init__(node_name=node_name)
@@ -92,7 +92,7 @@ class TesterNode(Node):
 
 def main():
     rclpy.init()
-    node = TesterNode("acoustic_sim_test_node")
+    node = SimulateAnchorMeasurementsNode("acoustic_sim_test_node")
     rclpy.spin(node)
 
 
