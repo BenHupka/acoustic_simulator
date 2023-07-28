@@ -5,14 +5,14 @@ import os
 
 class packet:
 
-    def __init__(self, tx_time, tx_pos, type, src, dst, TimeDiff, length):
-
-        tmp = os.path.dirname(__file__)
-        file_path_filter = os.path.join(tmp,
-                                        '../config/acoustic_config.json')
-        f = open(file_path_filter)
-        self.acoustic_config = json.load(f)
-        f.close()
+    def __init__(self, config, tx_time, tx_pos, type, src, dst, TimeDiff, length):
+        self.acoustic_config = config
+        # tmp = os.path.dirname(__file__)
+        # file_path_filter = os.path.join(tmp,
+        #                                 '../config/acoustic_config.json')
+        # f = open(file_path_filter)
+        # self.acoustic_config = json.load(f)
+        # f.close()
 
         self.tx_time = tx_time
         self.tx_pos = tx_pos

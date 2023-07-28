@@ -2,21 +2,22 @@
 
 import numpy as np
 from collections import deque
-from modem_class import modem
+from acoustic_simulator.modem_class import modem
 import json
 import os
 
 
 class acousticSimulation:
 
-    def __init__(self):
+    def __init__(self, config):
 
-        tmp = os.path.dirname(__file__)
-        file_path_filter = os.path.join(tmp,
-                                        '../config/acoustic_config.json')
-        f = open(file_path_filter)
-        self.config = json.load(f)
-        f.close()
+        # self.file_path_acoustic_config = config_path
+
+        # f = open(self.file_path_acoustic_config)
+        # self.config = json.load(f)
+        # f.close()
+
+        self.config = config
 
         self.t = 0
         self.last_t = 0
@@ -110,7 +111,7 @@ class acousticSimulation:
         self.AnchorIdList = []
         for i in self.config["config"]:
             if i['type'] == 'anchor':
-                creatmodem = modem(i["type"], i["name"], i["position"],
+                creatmodem = modem(self.config, i["type"], i["name"], i["position"],
                                    i["modem"]["id"], i["modem"]["DelayTime"],
                                    i["modem"]["PacketReceptionRate"],
                                    i["modem"]["dst"], i["modem"]["packetTyp"])
@@ -124,7 +125,7 @@ class acousticSimulation:
         self.AgentIdList = []
         for i in self.config["config"]:
             if i["type"] == "agent":
-                creatmodem = modem(i["type"], i["name"], i["position"],
+                creatmodem = modem(self.config, i["type"], i["name"], i["position"],
                                    i["modem"]["id"], i["modem"]["DelayTime"],
                                    i["modem"]["PacketReceptionRate"],
                                    i["modem"]["dst"], i["modem"]["packetTyp"])

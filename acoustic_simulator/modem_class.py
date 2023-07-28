@@ -1,6 +1,6 @@
 #!/usr/bin/env python
-from packet_class import packet
-from soundwave_class import soundwave_cl
+from acoustic_simulator.packet_class import packet
+from acoustic_simulator.soundwave_class import soundwave_cl
 import numpy as np
 import json
 import os
@@ -9,14 +9,16 @@ import math
 
 class modem:
 
-    def __init__(self, typ, name, position, ID, DelayTime, packetReceptionRate,
+    def __init__(self, config, typ, name, position, ID, DelayTime, packetReceptionRate,
                  dst, packetType):
-        tmp = os.path.dirname(__file__)
-        file_path_filter = os.path.join(tmp,
-                                        '../config/acoustic_config.json')
-        f = open(file_path_filter)
-        self.config = json.load(f)
-        f.close()
+        
+        # self.file_path_acoustic_config = config_path
+        # f = open(self.file_path_acoustic_config)
+        # self.config = json.load(f)
+        # f.close()
+
+        self.config = config
+
         self.state = "IDLE"
 
         self.role = typ
@@ -195,7 +197,7 @@ class modem:
                 self.state = "TRANSMIT"
 
                 if self.role == "agent":
-                    self.packet = packet(self.sim_time, self.position,
+                    self.packet = packet(self.config, self.sim_time, self.position,
                                          self.packetTyp, self.modemID,
                                          self.dst, 0, self.packetLengthPoll)
                     self.soundwave = soundwave_cl(self.position, self.packet)
@@ -210,7 +212,7 @@ class modem:
 
                 if self.role == "anchor":
                     self.transmitEndTime = self.sim_time + self.packetLengthResponse
-                    self.packet = packet(self.sim_time, self.position,
+                    self.packet = packet(self.config, self.sim_time, self.position,
                                          self.packetTyp, self.modemID,
                                          self.dst, 0,
                                          self.packetLengthResponse)

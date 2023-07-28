@@ -1,21 +1,12 @@
 #!/usr/bin/env python3
 import rclpy
-from rcl_interfaces.msg import (ParameterDescriptor, ParameterType)
 from rclpy.node import Node
-from rclpy.time import Time
 from nav_msgs.msg import Odometry
-from geometry_msgs.msg import PointStamped
-from acoustic_simulator.msg import ModemOut
-from acoustic_simulator.datawriter_class import datawriter
+from hippo_msgs.msg import ModemOut
 from acoustic_simulator.acoustic_sim_class import acousticSimulation
-from acoustic_simulator.localisation_sim_class import localisationSimulation
-from acoustic_simulator.dataloader_class import dataLoader
 
-import numpy as np
-import yaml
 import threading
 import json
-import os
 
 
 class TesterNode(Node):
@@ -23,35 +14,36 @@ class TesterNode(Node):
     def __init__(self, node_name):
         super().__init__(node_name=node_name)
 
-        # tmp = os.path.dirname(__file__)
-        # file_path_filter = os.path.join(tmp, '../config/acoustic_config.json')
-        # f = open(file_path_filter)
-        # self.acoustic_config = json.load(f)
-        # f.close()
+        self.declare_parameter('acoustic_config_path',
+                               rclpy.Parameter.Type.STRING)
+        self.acoustic_config_path = str(
+            self.get_parameter('acoustic_config_path').value)
 
-        self.t0 = 0.0
-        self.dt = 0.0
-        self.t = self.t0
-        self.z = None
-        # self.x0 = self.filter_config["config"][1]["settings"]["InitState"]
+        f = open(self.acoustic_config_path)
+        self.config = json.load(f)
+        f.close()
+
+        self.number_anchor_modems = 4
 
         self.lock = threading.RLock()
-        self.position = [0.0, 0.0, 0.0]
-        self.velocity = [0.0, 0.0, 0.0]
+        self.position = [
+            0.0, 0.0, 0.0
+        ]  # Alles für Hydrophon Position machen? -> In dem Fall Odometry Subscriber unten anpassen!
+        self.velocity = [0.0, 0.0, 0.0]  # hier auch Hydrophon dann
 
         self.rate_accoustics = 1000  # Hz
+        self.acoustic_sim = acousticSimulation(config=self.config)
 
-        self.acoustic_sim = acousticSimulation()
+        self.modem_pub = self.create_publisher(ModemOut,
+                                               'modems',
+                                               qos_profile=1)
 
-        self.modem_pub = self.create_publisher(
-            ModemOut,  # all messages in same topic?
-            'modems',
-            qos_profile=1)
-
-        # unklar wofür Nils das brauchte:
-        self.velocity_pub = self.create_publisher(PointStamped,
-                                                  'absolut_velocity',
-                                                  qos_profile=1)
+        self.modem_publisher_list = []
+        for i in range(self.number_anchor_modems):
+            topic_name = 'modem_' + str(
+                i + 1)  # TODO: fix modem ids starting at 1
+            pub = self.create_publisher(ModemOut, topic_name, qos_profile=1)
+            self.modem_publisher_list.append(pub)
 
         self.odometry_sub = self.create_subscription(Odometry,
                                                      'odometry',
@@ -64,21 +56,17 @@ class TesterNode(Node):
 
     def simulate_acoustics(self):
         t = self.get_clock().now()
-
-        # TODO: t should be a Time and not a duration according to Nils? This is a ROS Duration object though!
+        t = t.nanoseconds * 1e-9  # convert time to nanoseconds
 
         with self.lock:
             # What about moving buoys etc?
             measurement = self.acoustic_sim.simulate(self.position, t)
-            self.send_absolute_velocity(t)  # what's this for?
 
             if measurement is None:
                 return
 
-            if measurement["ModemID"] == 1:
-                self.send_measurement(measurement["ModemID"],
-                                      measurement["dist"],
-                                      measurement["time_published"])
+            self.send_measurement(measurement["ModemID"], measurement["dist"],
+                                  measurement["time_published"])
 
     def on_odometry(self, msg: Odometry):
         p = msg.pose.pose.position
@@ -89,25 +77,17 @@ class TesterNode(Node):
 
     def send_measurement(self, id: int, dist: float, t: float):
         msg = ModemOut()
-        msg.timestamp = self.get_clock().now().to_msg(
-            t)  # TODO: Should be time of ??
+        # convert float seconds to int seconds + int nanoseconds be compatible with time stamp msg type
+        msg.header.stamp.sec = int(t)
+        msg.header.stamp.nanosec = int((t - int(t)) * 1e9)
         msg.dist = dist
         msg.id = id
 
+        # publish all measurements in same topic
         self.modem_pub.publish(msg)
 
-    def send_absolute_velocity(t, self):
-        # Nils Implementierung:
-        # Wofür ist das?
-        msg = PointStamped()
-        msg.header.stamp = Time.to_msg(t)
-        msg.header.frame_id = 'map'
-        v = np.linalg.norm(self.velocity)
-        msg.point.x = v
-        msg.point.y = 0.0
-        msg.point.z = 0.0
-        self.velocity_pub.publish(msg)
-        pass
+        # publish measurement in modem-specific topic
+        self.modem_publisher_list[id - 1].publish(msg)
 
 
 def main():

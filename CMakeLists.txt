@@ -18,6 +18,7 @@ find_package(rclcpp REQUIRED)
 find_package(rclpy REQUIRED)
 find_package(std_srvs REQUIRED)
 find_package(hippo_msgs REQUIRED)
+# find_package(rosidl_default_generators REQUIRED)
 # find_package(tf_transformations REQUIRED)
 
 # find_package(catkin REQUIRED COMPONENTS
@@ -31,10 +32,10 @@ include_directories(
   include
 )
 
-rosidl_generate_interfaces(${PROJECT_NAME}
-  "msg/ModemOut.msg"
-  DEPENDENCIES builtin_interfaces std_msgs
-)
+# rosidl_generate_interfaces(${PROJECT_NAME}
+#   "msg/ModemOut.msg"
+#   DEPENDENCIES builtin_interfaces std_msgs
+# )
 
 
 
