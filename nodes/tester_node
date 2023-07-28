@@ -2,8 +2,9 @@
 import rclpy
 from rcl_interfaces.msg import (ParameterDescriptor, ParameterType)
 from rclpy.node import Node
-import rclpy.time
+from rclpy.time import Time
 from nav_msgs.msg import Odometry
+from geometry_msgs.msg import PointStamped
 from acoustic_simulator.msg import ModemOut
 from acoustic_simulator.datawriter_class import datawriter
 from acoustic_simulator.acoustic_sim_class import acousticSimulation
@@ -13,38 +14,53 @@ from acoustic_simulator.dataloader_class import dataLoader
 import numpy as np
 import yaml
 import threading
+import json
+import os
+
 
 class TesterNode(Node):
 
     def __init__(self, node_name):
         super().__init__(node_name=node_name)
 
+        # tmp = os.path.dirname(__file__)
+        # file_path_filter = os.path.join(tmp, '../config/acoustic_config.json')
+        # f = open(file_path_filter)
+        # self.acoustic_config = json.load(f)
+        # f.close()
+
         self.t0 = 0.0
         self.dt = 0.0
         self.t = self.t0
         self.z = None
-        self.x0 = self.filter_config["config"][1]["settings"]["InitState"]
-
+        # self.x0 = self.filter_config["config"][1]["settings"]["InitState"]
 
         self.lock = threading.RLock()
         self.position = [0.0, 0.0, 0.0]
         self.velocity = [0.0, 0.0, 0.0]
 
         self.rate_accoustics = 1000  # Hz
-        
+
         self.acoustic_sim = acousticSimulation()
 
-        self.modem_pub = self.create_publisher(ModemOut,  # all messages in same topic?
-                                               'modems',
-                                               qos_profile=1)
+        self.modem_pub = self.create_publisher(
+            ModemOut,  # all messages in same topic?
+            'modems',
+            qos_profile=1)
+
+        # unklar wofür Nils das brauchte:
+        self.velocity_pub = self.create_publisher(PointStamped,
+                                                  'absolut_velocity',
+                                                  qos_profile=1)
 
         self.odometry_sub = self.create_subscription(Odometry,
                                                      'odometry',
                                                      self.on_odometry,
                                                      qos_profile=1)
 
-        self.acoustics_timer = self.create_timer(timer_period_sec=(1 / self.rate_accoustics),
-                                               callback=self.simulate_acoustics)
+        self.acoustics_timer = self.create_timer(
+            timer_period_sec=(1 / self.rate_accoustics),
+            callback=self.simulate_acoustics)
 
     def simulate_acoustics(self):
         t = self.get_clock().now()
@@ -52,8 +68,17 @@ class TesterNode(Node):
         # TODO: t should be a Time and not a duration according to Nils? This is a ROS Duration object though!
 
         with self.lock:
-            measurement = self.acoustic_sim.simulate(self.position, t)  # moving buoys?
-            # self.publish_velocity(t, self.send_velocity)  # what's this for?
+            # What about moving buoys etc?
+            measurement = self.acoustic_sim.simulate(self.position, t)
+            self.send_absolute_velocity(t)  # what's this for?
+
+            if measurement is None:
+                return
+
+            if measurement["ModemID"] == 1:
+                self.send_measurement(measurement["ModemID"],
+                                      measurement["dist"],
+                                      measurement["time_published"])
 
     def on_odometry(self, msg: Odometry):
         p = msg.pose.pose.position
@@ -62,22 +87,27 @@ class TesterNode(Node):
             self.position = [p.x, p.y, p.z]
             self.velocity = [v.x, v.y, v.z]
 
-
-    def send_measurement(self, t: float, id: int, dist: float):
+    def send_measurement(self, id: int, dist: float, t: float):
         msg = ModemOut()
-        msg.timestamp = self.get_clock().now().to_msg(t)  # TODO: Should be time of ??
+        msg.timestamp = self.get_clock().now().to_msg(
+            t)  # TODO: Should be time of ??
         msg.dist = dist
         msg.id = id
-        
+
         self.modem_pub.publish(msg)
 
-    def send_velocity(t, self):
-        # Nils Implementierung: 
+    def send_absolute_velocity(t, self):
+        # Nils Implementierung:
+        # Wofür ist das?
         msg = PointStamped()
-        msg.header.stamp = self.get_cloc
+        msg.header.stamp = Time.to_msg(t)
+        msg.header.frame_id = 'map'
+        v = np.linalg.norm(self.velocity)
+        msg.point.x = v
+        msg.point.y = 0.0
+        msg.point.z = 0.0
+        self.velocity_pub.publish(msg)
         pass
-
-
 
 
 def main():

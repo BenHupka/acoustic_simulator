@@ -16,18 +16,17 @@ def declare_launch_args(launch_description: LaunchDescription):
 def include_launch_files(launch_description: LaunchDescription):
     package_path = get_package_share_path('acoustic_simulator')
 
-    path = str(package_path / 'launch/node_depth_estimator.launch.py')
+    path = str(package_path / 'launch/node_tester.launch.py')
     source = PythonLaunchDescriptionSource(path)
 
     args = PassLaunchArguments()
     args.add_vehicle_name_and_sim_time()
 
-    depth_estimator = IncludeLaunchDescription(source,
-                                               launch_arguments=args.items())
+    tester = IncludeLaunchDescription(source, launch_arguments=args.items())
 
     action = GroupAction([
         PushRosNamespace(LaunchConfiguration('vehicle_name')),
-        depth_estimator,
+        tester,
     ])
     launch_description.add_action(action)
 
