@@ -48,7 +48,7 @@ ament_python_install_package(${PROJECT_NAME})
 # Install Python executables
 install(PROGRAMS
   nodes/depth_estimator_node
-  nodes/tester_node
+  nodes/sim_anchor_measurements_node
   DESTINATION lib/${PROJECT_NAME}
 )
 

@@ -16,7 +16,7 @@ def declare_launch_args(launch_description: LaunchDescription):
 def include_launch_files(launch_description: LaunchDescription):
     package_path = get_package_share_path('acoustic_simulator')
 
-    path = str(package_path / 'launch/node_tester.launch.py')
+    path = str(package_path / 'launch/node_sim_anchor_measurements.launch.py')
     source = PythonLaunchDescriptionSource(path)
 
     args = PassLaunchArguments()

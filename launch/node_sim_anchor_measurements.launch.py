@@ -21,7 +21,7 @@ def declare_launch_args(launch_description: LaunchDescription):
 def add_node(launch_description: LaunchDescription):
     action = Node(
         package='acoustic_simulator',
-        executable='tester_node',
+        executable='sim_anchor_measurements_node',
         parameters=[
             {
                 'use_sim_time': LaunchConfiguration('use_sim_time')
