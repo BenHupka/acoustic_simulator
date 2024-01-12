@@ -1,13 +1,79 @@
 #!/usr/bin/env python3
 import rclpy
 from rclpy.node import Node
+from rcl_interfaces.msg import ParameterDescriptor, ParameterType
 from nav_msgs.msg import Odometry
 from std_msgs.msg import Header
 from hippo_msgs.msg import ModemOut
 from acoustic_simulator.acoustic_sim_class import acousticSimulation
 
 import threading
-import json
+from dataclasses import astuple, dataclass, is_dataclass
+from typing import Any
+
+
+def read_params_recursion(data: Any, name: str, node: Node):
+    if not is_dataclass(data):
+        descriptor = ParameterDescriptor()
+        if isinstance(data, int):
+            descriptor.type = ParameterType.PARAMETER_INTEGER
+        elif isinstance(data, float):
+            descriptor.type = ParameterType.PARAMETER_DOUBLE
+        elif isinstance(data, str):
+            descriptor.type = ParameterType.PARAMETER_STRING
+        else:
+            raise TypeError(f'Unsupported type "{type(data)}"')
+        node.declare_parameter(name, descriptor=descriptor)
+        return node.get_parameter(name).value
+    for field_name in data.__annotations__.keys():
+        setattr(
+            data, field_name,
+            read_params_recursion(getattr(data, f'{field_name}'),
+                                  f'{name}.{field_name}', node))
+    return data
+
+
+@dataclass()
+class ModemParams:
+    id: int = 0
+    delay_time: float = 0.0
+    packet_reception_rate: float = 0.0
+    dst: str = ''
+    packet_type: str = ''
+
+
+@dataclass
+class PositionParams:
+    x: float = 0.0
+    y: float = 0.0
+    z: float = 0.0
+
+
+@dataclass()
+class AnchorParams:
+    modem: ModemParams = ModemParams()
+    position: PositionParams = PositionParams()
+    name: str = ''
+
+
+@dataclass
+class AcousticParams:
+    type: str = ''
+    packet_length_poll: float = 0.0
+    packet_length_response: float = 0.0
+    sos: float = 0.0
+    algorithm: str = ''
+    time_out_alternating: float = 0.0
+    poll_circle: str = ''
+    poll_circle_time: float = 0.0
+    t_wp: float = 0.0
+    t_wr: float = 0.0
+    publish_delay: float = 0.0
+    time_out: float = 0.0
+    number_anchors: int = 0
+    frequency_acoustic_sim: float = 0.0
+    meas_noise_mean: float = 0.0
+    meas_noise_std_dev: float = 0.0
 
 
 class SimulateAnchorMeasurementsNode(Node):
@@ -15,65 +81,58 @@ class SimulateAnchorMeasurementsNode(Node):
     def __init__(self, node_name):
         super().__init__(node_name=node_name)
 
-        self.declare_parameter('acoustic_config_path',
-                               rclpy.Parameter.Type.STRING)
-        self.acoustic_config_path = str(
-            self.get_parameter('acoustic_config_path').value)
+        self.declare_parameter('anchors', rclpy.Parameter.Type.STRING_ARRAY)
+        self.anchors = self.init_anchor_params(
+            self.get_parameter('anchors').value)
 
-        f = open(self.acoustic_config_path)
-        self.config = json.load(f)
-        f.close()
+        # self.lock = threading.RLock()
+        # self.position = [
+        #     0.0, 0.0, 0.0
+        # ]  # Alles für Hydrophon Position machen? -> In dem Fall Odometry Subscriber unten anpassen!
+        # self.velocity = [0.0, 0.0, 0.0]  # hier auch Hydrophon dann
 
-        self.number_anchor_modems = 4
+        # self.rate_accoustics = 1000  # Hz
+        # # self.acoustic_sim = acousticSimulation(config=self.config)
 
-        self.lock = threading.RLock()
-        self.position = [
-            0.0, 0.0, 0.0
-        ]  # Alles für Hydrophon Position machen? -> In dem Fall Odometry Subscriber unten anpassen!
-        self.velocity = [0.0, 0.0, 0.0]  # hier auch Hydrophon dann
+        # self.modem_pub = self.create_publisher(ModemOut,
+        #                                        'modems',
+        #                                        qos_profile=1)
 
-        self.rate_accoustics = 1000  # Hz
-        self.acoustic_sim = acousticSimulation(config=self.config)
+        # self.modem_publisher_list = []
+        # for i in range(self.number_anchor_modems):
+        #     topic_name = 'modem_' + str(
+        #         i + 1)  # TODO: fix modem ids starting at 1
+        #     pub = self.create_publisher(ModemOut, topic_name, qos_profile=1)
+        #     self.modem_publisher_list.append(pub)
 
-        self.modem_pub = self.create_publisher(ModemOut,
-                                               'modems',
-                                               qos_profile=1)
+        # self.modem_error_publisher_list = []
+        # for i in range(self.number_anchor_modems):
+        #     topic_name = 'modem_error' + str(i + 1)
+        #     pub = self.create_publisher(ModemOut, topic_name, qos_profile=1)
+        #     self.modem_error_publisher_list.append(pub)
 
-        self.modem_publisher_list = []
-        for i in range(self.number_anchor_modems):
-            topic_name = 'modem_' + str(
-                i + 1)  # TODO: fix modem ids starting at 1
-            pub = self.create_publisher(ModemOut, topic_name, qos_profile=1)
-            self.modem_publisher_list.append(pub)
+        # self.odometry_sub = self.create_subscription(Odometry,
+        #                                              'odometry',
+        #                                              self.on_odometry,
+        #                                              qos_profile=1)
 
-        self.modem_error_publisher_list = []
-        for i in range(self.number_anchor_modems):
-            topic_name = 'modem_error' + str(i + 1)
-            pub = self.create_publisher(ModemOut, topic_name, qos_profile=1)
-            self.modem_error_publisher_list.append(pub)
-
-        self.odometry_sub = self.create_subscription(Odometry,
-                                                     'odometry',
-                                                     self.on_odometry,
-                                                     qos_profile=1)
-
-        self.acoustics_timer = self.create_timer(
-            timer_period_sec=(1 / self.rate_accoustics),
-            callback=self.simulate_acoustics)
+        # self.acoustics_timer = self.create_timer(
+        #     timer_period_sec=(1 / self.rate_accoustics),
+        #     callback=self.simulate_acoustics)
 
     def simulate_acoustics(self):
         t = self.get_clock().now()
         t = t.nanoseconds * 1e-9  # convert time to nanoseconds
 
-        with self.lock:
-            # What about moving buoys etc?
-            measurement = self.acoustic_sim.simulate(self.position, t)
+        # with self.lock:
+        #     # What about moving buoys etc?
+        #     measurement = self.acoustic_sim.simulate(self.position, t)
 
-            if measurement is None:
-                return
+        #     if measurement is None:
+        #         return
 
-            self.send_measurement(measurement["ModemID"], measurement["dist"],
-                                  measurement["time_published"])
+        #     self.send_measurement(measurement["ModemID"], measurement["dist"],
+        #                           measurement["time_published"])
 
     def on_odometry(self, msg: Odometry):
         p = msg.pose.pose.position
@@ -110,6 +169,17 @@ class SimulateAnchorMeasurementsNode(Node):
         header.stamp.sec = int(t)
         header.stamp.nanosec = int((t - int(t)) * 1e9)
         return header
+
+    def init_params(self):
+        acoustic_params = read_params_recursion(AcousticParams(),
+                                                'acoustic_params')
+
+    def init_anchor_params(self, anchor_names):
+        anchors = []
+        for name in anchor_names:
+            anchor_params = read_params_recursion(AnchorParams(), name, self)
+            anchors.append(anchor_params)
+        return anchors
 
 
 def main():
