@@ -1,12 +1,14 @@
 #!/usr/bin/env python
 import json
 import os
+from acoustic_simulator.params import AcousticParams
 
 
 class packet:
 
-    def __init__(self, config, tx_time, tx_pos, type, src, dst, TimeDiff, length):
-        self.acoustic_config = config
+    def __init__(self, config: AcousticParams, tx_time, tx_pos, type, src, dst,
+                 TimeDiff, length):
+        self.acoustic_params = config
         # tmp = os.path.dirname(__file__)
         # file_path_filter = os.path.join(tmp,
         #                                 '../config/acoustic_config.json')
@@ -21,8 +23,7 @@ class packet:
         self.type = type
         self.src = src
         self.dst = dst
-        self.timeout = self.acoustic_config["config"][0][
-            "TimeOut"] + self.tx_time  # timeout aus configfile
+        self.timeout = self.acoustic_params.time_out + self.tx_time  # timeout aus configfile
 
     def getPacketDict(self):
         self.dict = {

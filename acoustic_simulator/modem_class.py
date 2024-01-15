@@ -1,44 +1,43 @@
-#!/usr/bin/env python
+#!/usr/bin/env pythontyp
 from acoustic_simulator.packet_class import packet
 from acoustic_simulator.soundwave_class import soundwave_cl
 import numpy as np
 import json
 import os
 import math
+from acoustic_simulator.params import AcousticParams, AnchorParams, AgentParams
+from dataclasses import astuple
 
 
 class modem:
 
-    def __init__(self, config, typ, name, position, ID, DelayTime, packetReceptionRate,
-                 dst, packetType):
-        
+    def __init__(self, acoustic_params: AcousticParams, typ, position, ID,
+                 DelayTime, packetReceptionRate, dst, packetType):
+
         # self.file_path_acoustic_config = config_path
         # f = open(self.file_path_acoustic_config)
         # self.config = json.load(f)
         # f.close()
 
-        self.config = config
+        self.acoustic_params = acoustic_params
 
         self.state = "IDLE"
 
         self.role = typ
         self.packetTyp = packetType
-        self.name = name
-        self.position = position
+        self.position = np.array(astuple(position)).reshape((-1, 1))
         self.modemID = ID
-        self.T_wp = self.config["config"][0]["T_wp"]
-        self.T_wr = self.config["config"][0]["T_wr"]
-        self.pollcircle = self.config["config"][0]["pollcircle"]
+        self.T_wp = self.acoustic_params.t_wp
+        self.T_wr = self.acoustic_params.t_wr
+        self.pollcircle = self.acoustic_params.poll_circle
         self.packetReceptionRate = packetReceptionRate
-        self.packetLengthPoll = self.config["config"][0]["PacketLengthPoll"]
-        self.packetLengthResponse = self.config["config"][0][
-            "PacketLengthResponse"]
-        self.publishDelay = self.config["config"][0]["PublishDelay"]
-        self.PollCircleTime = self.config["config"][0]["PollCircleTime"]
-        self.TimeOutAlternating = self.config["config"][0][
-            "TimeOutAlternating"]
-        self.numberAnchor = self.config["config"][0]["numberAnchor"]
-        self.algorithm = self.config["config"][0]["algorithm"]
+        self.packetLengthPoll = self.acoustic_params.packet_length_poll
+        self.packetLengthResponse = self.acoustic_params.packet_length_response
+        self.publishDelay = self.acoustic_params.publish_delay
+        self.PollCircleTime = self.acoustic_params.poll_circle_time
+        self.TimeOutAlternating = self.acoustic_params.time_out_alternating
+        self.numberAnchor = self.acoustic_params.number_anchors
+        self.algorithm = self.acoustic_params.algorithm
 
         if self.algorithm == "alternating":
             self.delay = 0
@@ -46,7 +45,7 @@ class modem:
             self.delay = DelayTime
 
         self.dst = dst
-        self.SOS = self.config["config"][0]["SOS"]  #[m/s]
+        self.SOS = self.acoustic_params.sos
 
         self.sim_time = 0
         self.last_sim_time = 0
@@ -113,9 +112,9 @@ class modem:
                         self.PollPermitted = False
 
                 elif self.pollcircle == "lstAcktrgd":
-                    if self.role == "agent" and (self.PollPermitted
-                                                 or self.next_poll
-                                                 <= self.sim_time):
+                    if self.role == "agent" and (
+                            self.PollPermitted
+                            or self.next_poll <= self.sim_time):
                         self.state = "DELAY"
                         self.delayTime = self.sim_time + self.T_wr
                         self.PollPermitted = False
@@ -168,8 +167,8 @@ class modem:
                     self.SOS = self.getSOS()
                     dist = (self.runtime / 2) * self.SOS + float(
                         np.random.normal(
-                            self.config["config"][0]["MeasErrLoc"],
-                            self.config["config"][0]["MeasErrScale"], 1))
+                            self.acoustic_params.meas_noise_mean,
+                            self.acoustic_params.meas_noise_std_dev, 1))
                     exittime = self.exittime + self.publishDelay
                     if exittime <= self.sim_time:
                         if self.packetLost():
@@ -183,8 +182,7 @@ class modem:
                                 self.receivingTime, dist, realDist, distError,
                                 self.exittime, self.receivedPacket["src"],
                                 self.receivedPacket["tx_pos"],
-                                self.packetLengthResponse,
-                                self.packetLengthPoll
+                                self.packetLengthResponse, self.packetLengthPoll
                             )  # exittime - packetLengthResponse - publishDelay = True meas Time
                             self.PollPermitted = True
                             self.AckCounter += 1
@@ -197,9 +195,10 @@ class modem:
                 self.state = "TRANSMIT"
 
                 if self.role == "agent":
-                    self.packet = packet(self.config, self.sim_time, self.position,
-                                         self.packetTyp, self.modemID,
-                                         self.dst, 0, self.packetLengthPoll)
+                    self.packet = packet(self.acoustic_params, self.sim_time,
+                                         self.position, self.packetTyp,
+                                         self.modemID, self.dst, 0,
+                                         self.packetLengthPoll)
                     self.soundwave = soundwave_cl(self.position, self.packet)
                     self.transmitEndTime = self.sim_time + self.packetLengthPoll
                     self.last_poll = float(self.sim_time)
@@ -212,9 +211,9 @@ class modem:
 
                 if self.role == "anchor":
                     self.transmitEndTime = self.sim_time + self.packetLengthResponse
-                    self.packet = packet(self.config, self.sim_time, self.position,
-                                         self.packetTyp, self.modemID,
-                                         self.dst, 0,
+                    self.packet = packet(self.acoustic_params, self.sim_time,
+                                         self.position, self.packetTyp,
+                                         self.modemID, self.dst, 0,
                                          self.packetLengthResponse)
                     self.packet.setAnchorPrcTime(self.sim_time -
                                                  self.receivingTime)
@@ -337,4 +336,4 @@ class modem:
         return self.soundwaveList
 
     def getSWCounter(self):
-        return self.name, self.swCounter
+        return self.modemID, self.swCounter

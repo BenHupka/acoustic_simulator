@@ -1,11 +1,11 @@
 /**: # wildcard for the node name
   ros__parameters:
     # for now, (almost) identical parameters to Nils Sichert's code
-    accoustic_params:
+    acoustic_params:
       type: setup                       #
       packet_length_poll: 0.26624       #
       packet_length_response: 0.45056   #
-      sos: 1500                         # speed of sound underwater    
+      sos: 1500.0                       # speed of sound underwater    
       
       algorithm: broadcast              # broadcast or alternating -- dann sollte das unten auch angepasst werden - in unterschiedliche files
       time_out_alternating: 1.5         # 
@@ -17,8 +17,8 @@
       time_out: 0.2                     #
       number_anchors: 4                 # number of anchors
       frequency_acoustic_sim: 100.0     # Hz?
-      meas_noise_mean: 0.0            # mean of noise
-      meas_noise_std_dev: 0.0               # variance (???) of noise
+      meas_noise_mean: 0.0              # mean of noise
+      meas_noise_std_dev: 0.0           # standard deviation of noise
 
     anchors: [anchor_1, anchor_2, anchor_3, anchor_4]
 
@@ -47,7 +47,7 @@
         packet_type: TYPE_RANGING_ACK
       position: 
         x: -5.0
-        y: -10.0
+        y: -5.0
         z: -1.0
 
     anchor_2:
@@ -59,8 +59,8 @@
         dst: broadcast
         packet_type: TYPE_RANGING_ACK
       position:
-        x: -20.0
-        y: 10.0
+        x: -10.0
+        y: 5.0
         z: -1.0
 
     anchor_3:
@@ -73,7 +73,7 @@
         packet_type: TYPE_RANGING_ACK
       position:
         x: 10.0
-        y: 15.0
+        y: 5.0
         z: -1.0
 
     anchor_4:
@@ -85,7 +85,7 @@
         dst: broadcast
         packet_type: TYPE_RANGING_ACK
       position:
-        x: 10.0
-        y: -10.0
+        x: 5.0
+        y: -5.0
         z: -1.0
 
