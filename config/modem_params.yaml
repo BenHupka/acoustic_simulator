@@ -35,8 +35,6 @@
         y: 0.0
         z: 0.0
 
-    # since lists with different types are not supported as ROS parameters
-    # hardcoded list of all anchors
     anchor_1:
       name: anchor_1
       modem:

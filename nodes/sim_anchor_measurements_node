@@ -6,7 +6,7 @@ from nav_msgs.msg import Odometry
 from std_msgs.msg import Header
 from hippo_msgs.msg import ModemOut
 from acoustic_simulator.acoustic_sim_class import acousticSimulation
-from acoustic_simulator.params import read_params_recursion, AnchorParams, AcousticParams, AgentParams
+from acoustic_simulator.params import read_params_recursion, AnchorParams, AcousticParams, AgentParams, ModemParams, PositionParams
 
 import threading
 
@@ -119,13 +119,17 @@ class SimulateAnchorMeasurementsNode(Node):
         return acoustic_params
 
     def init_agent_params(self):
-        agent_params = read_params_recursion(AgentParams(), 'agent', self)
+        agent_params = read_params_recursion(
+            AgentParams(modem=ModemParams(), position=PositionParams()),
+            'agent', self)
         return agent_params
 
     def init_anchor_params(self, anchor_names: list[str]):
         anchors = []
         for name in anchor_names:
-            anchor_params = read_params_recursion(AnchorParams(), name, self)
+            anchor_params = read_params_recursion(
+                AnchorParams(modem=ModemParams(), position=PositionParams()),
+                name, self)
             anchors.append(anchor_params)
         return anchors
 

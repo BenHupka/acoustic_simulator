@@ -46,16 +46,16 @@ class PositionParams:
 
 @dataclass()
 class AnchorParams:
-    modem: ModemParams = ModemParams()
-    position: PositionParams = PositionParams()
+    modem: ModemParams
+    position: PositionParams
     name: str = ''
 
 
 # todo: find better solution - merge with AnchorParams?
 @dataclass()
 class AgentParams:
-    modem: ModemParams = ModemParams()
-    position: PositionParams = PositionParams()
+    modem: ModemParams
+    position: PositionParams
     name: str = ''
 
 

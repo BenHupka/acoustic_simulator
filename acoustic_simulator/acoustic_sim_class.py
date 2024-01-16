@@ -15,6 +15,7 @@ class acousticSimulation:
         self.acoustic_params = acoustic_params
         self.anchors = anchors
         self.agent = agent
+        self.logger = rcutils_logger.RcutilsLogger(name="acoustic_sim")
 
         self.t = init_time
         self.last_t = init_time
@@ -37,7 +38,6 @@ class acousticSimulation:
         self.agent_modem_list[0].sendPoll(
             self.AgentDst)  # Agent sends first Poll
         self.dst_counter = 0
-        self.logger = rcutils_logger.RcutilsLogger(name="acoustic_sim")
 
     def simulate(self, agent_pose: np.ndarray, t: float) -> Any:
         self.t = float(t)
@@ -81,7 +81,7 @@ class acousticSimulation:
                 modem.setPublishedFlag(False)
                 self.new_dst(meas["ModemID"])
                 self.set_dst_counter()
-                self.logger.info(f'Measurement received: {meas}')
+                # self.logger.info(f'Measurement received: {meas}')
         return meas
 
     def delete_soundwave(self):
@@ -111,18 +111,7 @@ class acousticSimulation:
     def fill_anchor_modem_list(self):
         anchor_list = []
         self.anchor_id_list = []
-        # for i in self.config["config"]:
-        #     if i['type'] == 'anchor':
-        #         anchor_modem = modem(self.config, i["type"], i["name"],
-        #                              i["position"], i["modem"]["id"],
-        #                              i["modem"]["DelayTime"],
-        #                              i["modem"]["PacketReceptionRate"],
-        #                              i["modem"]["dst"], i["modem"]["packetTyp"])
-        #         idmodem = i["modem"]["id"]
-        #         anchor_list.append(anchor_modem)
-        #         self.anchor_id_list.append(idmodem)
 
-        # refactored:
         for anchor in self.anchors:
             anchor_modem = modem(
                 self.acoustic_params,
@@ -135,22 +124,13 @@ class acousticSimulation:
                 anchor.modem.packet_type)
             anchor_list.append(anchor_modem)
             self.anchor_id_list.append(anchor.modem.id)
+            # self.logger.info(f'Adding modem with id {anchor.modem.id}')
 
         return anchor_list
 
     def fill_agent_modem_list(self):
         agent_list = []
         self.agent_id_list = []
-        # for i in self.config["config"]:
-        #     if i["type"] == "agent":
-        #         creatmodem = modem(self.config, i["type"], i["name"],
-        #                            i["position"], i["modem"]["id"],
-        #                            i["modem"]["DelayTime"],
-        #                            i["modem"]["PacketReceptionRate"],
-        #                            i["modem"]["dst"], i["modem"]["packetTyp"])
-        #         idmodem = i["modem"]["id"]
-        #         self.agent_id_list.append(idmodem)
-        #         agent_list.append(creatmodem)
 
         # refactored, only one agent for now:
         agent_modem = modem(
