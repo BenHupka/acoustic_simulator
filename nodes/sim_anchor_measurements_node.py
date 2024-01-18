@@ -152,8 +152,9 @@ class SimulateAnchorMeasurementsNode(Node):
     def publish_rviz_anchors(self, anchors: list[AnchorParams]):
         markers = []
         for anchor in anchors:
-            marker = self.create_anchor_marker(anchor)
+            marker, text_marker = self.create_anchor_marker(anchor)
             markers.append(marker)
+            markers.append(text_marker)
         self.publish_rviz_markers(markers)
 
     def create_anchor_marker(self, anchor: AnchorParams) -> Marker:
@@ -169,9 +170,28 @@ class SimulateAnchorMeasurementsNode(Node):
         marker.scale.x = 0.3
         marker.scale.y = 0.3
         marker.scale.z = 0.3
+
         marker.header.frame_id = 'map'
         marker.ns = 'anchors'
-        return marker
+
+        text_marker = Marker()
+        text_marker.type = Marker.TEXT_VIEW_FACING
+        text_marker.id = self.number_anchors + anchor.modem.id
+        text_marker.pose = Pose()
+        text_marker.pose.position.x = anchor.position.x
+        text_marker.pose.position.y = anchor.position.y
+        text_marker.pose.position.z = anchor.position.z + 0.5
+        text_marker.color.a = 1.0
+        text_marker.color.r = 1.0
+        text_marker.color.b = 1.0
+        text_marker.color.g = 1.0
+        text_marker.scale.x = 0.5
+        text_marker.scale.y = 0.5
+        text_marker.scale.z = 0.5
+        text_marker.text = f"{anchor.name}"
+        text_marker.header.frame_id = 'map'
+        text_marker.ns = 'anchors'
+        return marker, text_marker
 
 
 def main():
