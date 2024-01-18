@@ -12,7 +12,7 @@ from launch.actions import (
     GroupAction,
 )
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import LaunchConfiguration, TextSubstitution
+from launch.substitutions import LaunchConfiguration
 
 
 def declare_launch_args(launch_description: LaunchDescription):

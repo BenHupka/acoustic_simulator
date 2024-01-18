@@ -156,11 +156,6 @@ class SimulateAnchorMeasurementsNode(Node):
             markers.append(marker)
         self.publish_rviz_markers(markers)
 
-    # def create_robot_markers(self) -> Marker:
-    #     marker = Marker()
-    #     marker.type
-    #     return marker
-
     def create_anchor_marker(self, anchor: AnchorParams) -> Marker:
         marker = Marker()
         marker.type = Marker.CYLINDER
