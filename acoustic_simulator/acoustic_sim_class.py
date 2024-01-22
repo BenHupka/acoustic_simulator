@@ -39,14 +39,14 @@ class acousticSimulation:
             self.AgentDst)  # Agent sends first Poll
         self.dst_counter = 0
 
-    def simulate(self, agent_pose: np.ndarray, t: float) -> Any:
-        self.t = float(t)
+    def simulate(self, agent_position: np.ndarray, t: float) -> Any:
+        self.t = float(t)  # in nanoseconds
         self.dt = float(self.t - self.last_t)
         self.last_t = self.t
 
         self.update_soundwave(self.dt)
         self.delete_soundwave()
-        self.update_agent_modem(agent_pose)
+        self.update_agent_modem(agent_position)
         self.update_anchor_modem()
         return self.get_published_modem_measurement(
         )  # measurement, is what type?!

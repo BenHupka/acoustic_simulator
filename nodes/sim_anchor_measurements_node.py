@@ -86,9 +86,9 @@ class SimulateAnchorMeasurementsNode(Node):
 
             self.send_measurement(measurement["ModemID"], measurement["dist"],
                                   measurement["time_published"])
-            self.get_logger().info(
-                f'Received measurement from modem {measurement["ModemID"]}, distance measured: {measurement["dist"]:.2f} \n Agent position was: {self.agent_position[0]}, {self.agent_position[1]}, {self.agent_position[2]}'
-            )
+            # self.get_logger().info(
+            #     f'Received measurement from modem {measurement["ModemID"]}, distance measured: {measurement["dist"]:.2f} \n Agent position was: {self.agent_position[0]}, {self.agent_position[1]}, {self.agent_position[2]}'
+            # )
 
         # publish anchor rviz markers
         self.publish_rviz_anchors(self.anchors)
@@ -163,14 +163,17 @@ class SimulateAnchorMeasurementsNode(Node):
     def publish_anchor_poses(self):
         msg = AnchorPoses()
         now = self.get_clock().now()
-        msg.header = now.to_msg()
+        msg.header.stamp = now.to_msg()
         for anchor in self.anchors:
-            msg.anchors.pose.header.stamp = now.to_msg()
-            msg.anchors.pose.frame_id = 'map'
-            msg.anchors.id = anchor.modem.id
-            msg.anchors.pose.pose.position.x = anchor.position.x
-            msg.anchors.pose.pose.position.y = anchor.position.y
-            msg.anchors.pose.pose.position.z = anchor.position.z
+            single_anchor_msg = AnchorPose()
+            single_anchor_msg.pose.header.stamp = now.to_msg()
+            single_anchor_msg.pose.header.frame_id = 'map'
+            single_anchor_msg.id = anchor.modem.id
+            single_anchor_msg.pose.pose.position.x = anchor.position.x
+            single_anchor_msg.pose.pose.position.y = anchor.position.y
+            single_anchor_msg.pose.pose.position.z = anchor.position.z
+            msg.anchors.append(single_anchor_msg)
+        self.anchor_poses_pub.publish(msg)
 
     def create_anchor_marker(self, anchor: AnchorParams) -> Marker:
         marker = Marker()

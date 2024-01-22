@@ -6,18 +6,20 @@ from geometry_msgs.msg import PoseStamped, Pose
 from nav_msgs.msg import Odometry
 from hippo_msgs.msg import AnchorPoses, AnchorPose
 from std_msgs.msg import Float64
+from rcl_interfaces.msg import ParameterType
 
 
 class GroundTruthNode(Node):
 
-    def __init__(self):
-        super().__init__(node_name='ground_truth_distances')
+    def __init__(self, node_name):
+        super().__init__(node_name=node_name)
 
-        self.declare_parameter('number_anchors', rclpy.Parameter.Type.INT)
-        self.number_anchors = self.get_parameter('number_anchors').value
+        self.declare_parameter('acoustic_params.number_anchors',
+                               rclpy.Parameter.Type.INTEGER)
+        self.number_anchors = self.get_parameter(
+            'acoustic_params.number_anchors').value
 
         self.anchor_poses = [None] * self.number_anchors
-        self.distance_pub = self.create_publisher()
 
         self.debug_pub_list = []
 
@@ -36,7 +38,7 @@ class GroundTruthNode(Node):
                                                          qos_profile=1)
 
     def on_odometry(self, msg: Odometry):
-        p = msg.pose.pose.position
+        p = msg.pose.pose
         anchor: AnchorPose
         for anchor in self.anchor_poses:
             if anchor is None:

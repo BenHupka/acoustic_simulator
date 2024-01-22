@@ -90,7 +90,8 @@ def generate_launch_description():
         PushRosNamespace(LaunchConfiguration("vehicle_name")),
         create_anchor_sim_node(),
         create_ground_truth_distance_node(),
-        create_rviz_robot_mesh_publisher()
+        create_rviz_robot_mesh_publisher(),
+        create_rviz_node()
     ])
 
     launch_description.add_action(nodes_group)
