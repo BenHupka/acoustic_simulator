@@ -57,7 +57,7 @@
         dst: broadcast
         packet_type: TYPE_RANGING_ACK
       position:
-        x: -10.0
+        x: -5.0
         y: 5.0
         z: -1.0
 
@@ -70,7 +70,7 @@
         dst: broadcast
         packet_type: TYPE_RANGING_ACK
       position:
-        x: 10.0
+        x: 5.0
         y: 5.0
         z: -1.0
 

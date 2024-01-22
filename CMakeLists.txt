@@ -38,6 +38,7 @@ ament_python_install_package(${PROJECT_NAME})
 # Install Python executables
 install(PROGRAMS
   nodes/sim_anchor_measurements_node.py
+  nodes/ground_truth_distance_node.py
   DESTINATION lib/${PROJECT_NAME}
 )
 

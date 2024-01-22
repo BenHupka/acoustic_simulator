@@ -5,7 +5,7 @@ from rcl_interfaces.msg import ParameterDescriptor, ParameterType
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import Pose
 from std_msgs.msg import Header
-from hippo_msgs.msg import ModemOut
+from hippo_msgs.msg import ModemOut, AnchorPoses, AnchorPose
 from visualization_msgs.msg import Marker, MarkerArray
 from acoustic_simulator.acoustic_sim_class import acousticSimulation
 from acoustic_simulator.params import read_params_recursion, AnchorParams, AcousticParams, AgentParams, ModemParams, PositionParams
@@ -41,6 +41,10 @@ class SimulateAnchorMeasurementsNode(Node):
                                                'modems',
                                                qos_profile=1)
 
+        self.anchor_poses_pub = self.create_publisher(AnchorPoses,
+                                                      'anchor_poses',
+                                                      qos_profile=1)
+
         self.modem_publisher_list = []
         for i in range(self.number_anchors):
             topic_name = 'modem_' + str(
@@ -66,7 +70,9 @@ class SimulateAnchorMeasurementsNode(Node):
         self.acoustics_timer = self.create_timer(
             timer_period_sec=(1 / self.rate_accoustics),
             callback=self.simulate_acoustics)
-        self.get_logger().info(f'Hallo from init function!')
+
+        self.anchor_poses_timer = self.create_timer(
+            timer_period_sec=(1 / 1.0), callback=self.publish_anchor_poses)
 
     def simulate_acoustics(self):
         t = self.get_clock().now()
@@ -81,7 +87,8 @@ class SimulateAnchorMeasurementsNode(Node):
             self.send_measurement(measurement["ModemID"], measurement["dist"],
                                   measurement["time_published"])
             self.get_logger().info(
-                f'Received measurement from modem {measurement["ModemID"]}')
+                f'Received measurement from modem {measurement["ModemID"]}, distance measured: {measurement["dist"]:.2f} \n Agent position was: {self.agent_position[0]}, {self.agent_position[1]}, {self.agent_position[2]}'
+            )
 
         # publish anchor rviz markers
         self.publish_rviz_anchors(self.anchors)
@@ -92,10 +99,6 @@ class SimulateAnchorMeasurementsNode(Node):
         with self.lock:
             self.agent_position = [p.x, p.y, p.z]
             self.agent_velocity = [v.x, v.y, v.z]
-
-        # publish bluerov marker
-        # todo: move this somewhere better (e.g. hippo_common)
-        # self.publish_rviz_robot(msg)
 
     def send_measurement(self, id: int, dist: float, t: float):
         msg = ModemOut()
@@ -157,6 +160,18 @@ class SimulateAnchorMeasurementsNode(Node):
             markers.append(text_marker)
         self.publish_rviz_markers(markers)
 
+    def publish_anchor_poses(self):
+        msg = AnchorPoses()
+        now = self.get_clock().now()
+        msg.header = now.to_msg()
+        for anchor in self.anchors:
+            msg.anchors.pose.header.stamp = now.to_msg()
+            msg.anchors.pose.frame_id = 'map'
+            msg.anchors.id = anchor.modem.id
+            msg.anchors.pose.pose.position.x = anchor.position.x
+            msg.anchors.pose.pose.position.y = anchor.position.y
+            msg.anchors.pose.pose.position.z = anchor.position.z
+
     def create_anchor_marker(self, anchor: AnchorParams) -> Marker:
         marker = Marker()
         marker.type = Marker.CYLINDER
@@ -185,9 +200,7 @@ class SimulateAnchorMeasurementsNode(Node):
         text_marker.color.r = 1.0
         text_marker.color.b = 1.0
         text_marker.color.g = 1.0
-        text_marker.scale.x = 0.5
-        text_marker.scale.y = 0.5
-        text_marker.scale.z = 0.5
+        text_marker.scale.z = 0.5  # only scale for text markers
         text_marker.text = f"{anchor.name}"
         text_marker.header.frame_id = 'map'
         text_marker.ns = 'anchors'

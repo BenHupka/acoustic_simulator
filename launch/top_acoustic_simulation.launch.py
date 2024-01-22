@@ -43,6 +43,21 @@ def create_anchor_sim_node():
     )
 
 
+def create_ground_truth_distance_node():
+    args = LaunchArgsDict()
+    args.add_vehicle_name_and_sim_time()
+    return Node(
+        package='acoustic_simulator',
+        executable='ground_truth_distance_node.py',
+        parameters=[
+            args,
+            LaunchConfiguration('acoustic_config_path'),
+        ],
+        output='screen',
+        emulate_tty=True,
+    )
+
+
 def create_rviz_robot_mesh_publisher():
     args = LaunchArgsDict()
     args.add_vehicle_name_and_sim_time()
@@ -56,6 +71,17 @@ def create_rviz_robot_mesh_publisher():
     )
 
 
+def create_rviz_node():
+    rviz_file = str(
+        get_package_share_path('acoustic_simulator') / 'config/rviz.rviz')
+    return Node(
+        executable='rviz2',
+        package='rviz2',
+        name='rviz2',
+        arguments=['-d', rviz_file, '--ros-args', '--log-level', 'error'],
+    )
+
+
 def generate_launch_description():
     launch_description = LaunchDescription()
     declare_launch_args(launch_description=launch_description)
@@ -63,6 +89,7 @@ def generate_launch_description():
     nodes_group = GroupAction([
         PushRosNamespace(LaunchConfiguration("vehicle_name")),
         create_anchor_sim_node(),
+        create_ground_truth_distance_node(),
         create_rviz_robot_mesh_publisher()
     ])
 
