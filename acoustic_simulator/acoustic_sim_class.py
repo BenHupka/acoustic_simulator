@@ -43,6 +43,9 @@ class acousticSimulation:
         self.t = float(t)  # in nanoseconds
         self.dt = float(self.t - self.last_t)
         self.last_t = self.t
+        self.logger.info(
+            f' \n Simulating for t= {t} \n Agent position: {agent_position} \n dt = {self.dt}',
+            throttle_duration_sec=0.5)
 
         self.update_soundwave(self.dt)
         self.delete_soundwave()

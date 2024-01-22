@@ -14,11 +14,6 @@ class modem:
     def __init__(self, acoustic_params: AcousticParams, typ, position, ID,
                  DelayTime, packetReceptionRate, dst, packetType):
 
-        # self.file_path_acoustic_config = config_path
-        # f = open(self.file_path_acoustic_config)
-        # self.config = json.load(f)
-        # f.close()
-
         self.acoustic_params = acoustic_params
 
         self.state = "IDLE"

@@ -33,7 +33,7 @@ class SimulateAnchorMeasurementsNode(Node):
         self.rate_accoustics = 100.0  # Hz
 
         init_time = self.get_clock().now()
-        init_time = init_time.nanoseconds * 1e-9
+        init_time = init_time.nanoseconds * 1e-9  # to seconds
         self.acoustic_sim = acousticSimulation(self.acoustic_params, self.agent,
                                                self.anchors, init_time)
 
@@ -75,8 +75,8 @@ class SimulateAnchorMeasurementsNode(Node):
             timer_period_sec=(1 / 1.0), callback=self.publish_anchor_poses)
 
     def simulate_acoustics(self):
-        t = self.get_clock().now()
-        t = t.nanoseconds * 1e-9  # convert time to nanoseconds
+        t = self.get_clock().now().nanoseconds
+        t = t * 1e-9  # convert time to seconds
         with self.lock:
             # What about moving buoys etc?
             measurement = self.acoustic_sim.simulate(self.agent_position, t)
