@@ -40,15 +40,20 @@ class acousticSimulation:
         self.dst_counter = 0
 
     def simulate(self, agent_position: np.ndarray, t: float) -> Any:
-        self.t = float(t)  # in nanoseconds
+        self.t = float(t)  # in seconds
         self.dt = float(self.t - self.last_t)
         self.last_t = self.t
-        self.logger.info(
-            f' \n Simulating for t= {t} \n Agent position: {agent_position} \n dt = {self.dt}',
-            throttle_duration_sec=0.5)
+        # self.logger.info(
+        #     f' \n Simulating for t= {t} \n Agent position: {agent_position} \n dt = {self.dt}',
+        #     throttle_duration_sec=0.5)
 
+        # update radius of each soundwave
         self.update_soundwave(self.dt)
+
+        # delete all soundwaves that have been around for longer than their timeout
         self.delete_soundwave()
+
+        #
         self.update_agent_modem(agent_position)
         self.update_anchor_modem()
         return self.get_published_modem_measurement(
@@ -56,13 +61,19 @@ class acousticSimulation:
 
     def update_soundwave(self, dt: float):
         sos = self.acoustic_params.sos
+        # self.logger.info(f'Number of soundwaves: {len(self.soundwave_list)}')
         for soundwave in self.soundwave_list:
             soundwave.update(dt, sos)
+            # self.logger.info(
+            #     f'Updating soundwave with packet src: {soundwave.getPacket().getPacketDict()["src"]} \n packet type: {soundwave.getPacket().getPacketDict()["type"]} \n packet anchor length: {soundwave.getPacket().getPacketDict()["length"]} '
+            # )
 
     def update_agent_modem(self, x):
         for modem in self.agent_modem_list:
-            ret = modem.update(x, self.soundwave_list, self.t,
+            ret = modem.update(np.copy(x), self.soundwave_list, self.t,
                                self.acoustic_params.sos, self.AgentDst)
+            # only thing changing should be position + soundwavelist + time
+
             if ret is not None:
                 self.soundwave_list.append(ret)
 

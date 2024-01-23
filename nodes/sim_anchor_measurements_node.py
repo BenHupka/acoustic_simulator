@@ -86,9 +86,9 @@ class SimulateAnchorMeasurementsNode(Node):
 
             self.send_measurement(measurement["ModemID"], measurement["dist"],
                                   measurement["time_published"])
-            # self.get_logger().info(
-            #     f'Received measurement from modem {measurement["ModemID"]}, distance measured: {measurement["dist"]:.2f} \n Agent position was: {self.agent_position[0]}, {self.agent_position[1]}, {self.agent_position[2]}'
-            # )
+            self.get_logger().info(
+                f'At time t={t} \n Received measurement from modem {measurement["ModemID"]}, distance measured: {measurement["dist"]:.2f} \n Agent position was: {self.agent_position[0]}, {self.agent_position[1]}, {self.agent_position[2]}'
+            )
 
         # publish anchor rviz markers
         self.publish_rviz_anchors(self.anchors)

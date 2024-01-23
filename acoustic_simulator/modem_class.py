@@ -120,6 +120,8 @@ class modem:
                 print("[Modem] Wrong algorithm")
 
             self.resetReceivingList()
+
+            # sollte das modem nicht nur eine soundwave/packet zur zeit receiven können??
             for soundwave in soundwaveList:
 
                 if self.isInRange(soundwave) and self.state == "IDLE":
