@@ -23,20 +23,20 @@ class acousticSimulation:
 
         self.soundwave_list = deque([])
 
-        self.agent_modem_list = self.fill_agent_modem_list()
-        self.anchor_modem_list = self.fill_anchor_modem_list()
+        self.agent_modem_list = self.fill_agent_modem_list(init_time)
+        self.anchor_modem_list = self.fill_anchor_modem_list(init_time)
 
         if self.acoustic_params.algorithm == "broadcast":
-            self.AgentDst = "broadcast"
+            self.destination_id = "broadcast"
             self.AnchorDst = "broadcast"
         elif self.acoustic_params.algorithm == "alternating":
-            self.AgentDst = self.anchor_id_list[0]
+            self.destination_id = self.anchor_id_list[0]
             self.AnchorDst = self.agent_id_list[0]
         else:
             print("[Acousitc-sim] Dst Error")
 
-        self.agent_modem_list[0].sendPoll(
-            self.AgentDst)  # Agent sends first Poll
+        self.agent_modem_list[0].send_poll(
+            self.destination_id)  # Agent sends first Poll
         self.dst_counter = 0
 
     def simulate(self, agent_position: np.ndarray, t: float) -> Any:
@@ -53,55 +53,52 @@ class acousticSimulation:
         # delete all soundwaves that have been around for longer than their timeout
         self.delete_soundwave()
 
-        #
+        # update agent position, soundwaves for agent modem
         self.update_agent_modem(agent_position)
-        self.update_anchor_modem()
-        return self.get_published_modem_measurement(
-        )  # measurement, is what type?!
+        # update soundwaves for anchor modems
+        self.update_anchor_modems()
+        return self.get_modem_measurement()  # measurement, is what type?!
 
     def update_soundwave(self, dt: float):
         sos = self.acoustic_params.sos
         # self.logger.info(f'Number of soundwaves: {len(self.soundwave_list)}')
         for soundwave in self.soundwave_list:
             soundwave.update(dt, sos)
-            # self.logger.info(
-            #     f'Updating soundwave with packet src: {soundwave.getPacket().getPacketDict()["src"]} \n packet type: {soundwave.getPacket().getPacketDict()["type"]} \n packet anchor length: {soundwave.getPacket().getPacketDict()["length"]} '
-            # )
 
     def update_agent_modem(self, x):
         for modem in self.agent_modem_list:
             ret = modem.update(np.copy(x), self.soundwave_list, self.t,
-                               self.acoustic_params.sos, self.AgentDst)
+                               self.acoustic_params.sos, self.destination_id)
             # only thing changing should be position + soundwavelist + time
 
             if ret is not None:
                 self.soundwave_list.append(ret)
 
-    def update_anchor_modem(self):
+    def update_anchor_modems(self):
         for modem in self.anchor_modem_list:
             ret = modem.update(modem.getPosition(), self.soundwave_list, self.t,
                                self.acoustic_params.sos, self.AnchorDst)
             if ret is not None:
                 self.soundwave_list.append(ret)
 
-    def get_published_modem_measurement(self):
+    def get_modem_measurement(self):
         if self.dst_counter <= self.t:
-            self.new_dst(self.AgentDst)
+            self.new_dst(self.destination_id)
 
-        meas = None
+        measurement = None
         for modem in self.agent_modem_list:
-            if modem.getPublished():
-                meas = modem.getPublishedMessage()
-                modem.setPublishedFlag(False)
-                self.new_dst(meas["ModemID"])
+            if modem.new_measurement_available():
+                measurement = modem.get_received_measurement()
+                modem.set_new_measurement_flag(False)
+                self.new_dst(measurement["ModemID"])
                 self.set_dst_counter()
                 # self.logger.info(f'Measurement received: {meas}')
-        return meas
+        return measurement
 
     def delete_soundwave(self):
         counter = 0
         for soundwave in self.soundwave_list:
-            if soundwave.getPacket().getPacketDict()["timeout"] <= self.t:
+            if soundwave.get_packet().get_packet_dict()["timeout"] <= self.t:
                 counter += 1
 
         for i in range(counter):
@@ -112,17 +109,17 @@ class acousticSimulation:
 
     def new_dst(self, ID):
         if self.acoustic_params.algorithm == "broadcast":
-            self.AgentDst = "broadcast"
+            self.destination_id = "broadcast"
             self.AnchorDst = "broadcast"
         elif self.acoustic_params.algorithm == "alternating":
             for i in range(len(self.anchor_id_list)):
                 if self.anchor_id_list[i] == ID:
                     if i < len(self.anchor_id_list) - 1:
-                        self.AgentDst = self.anchor_id_list[i + 1]
+                        self.destination_id = self.anchor_id_list[i + 1]
                     elif i >= len(self.anchor_id_list) - 1:
-                        self.AgentDst = self.anchor_id_list[0]
+                        self.destination_id = self.anchor_id_list[0]
 
-    def fill_anchor_modem_list(self):
+    def fill_anchor_modem_list(self, init_time):
         anchor_list = []
         self.anchor_id_list = []
 
@@ -134,15 +131,17 @@ class acousticSimulation:
                 anchor.modem.id,
                 anchor.modem.delay_time,
                 anchor.modem.packet_reception_rate,
-                anchor.modem.dst,
-                anchor.modem.packet_type)
+                anchor.modem.destination_id,
+                anchor.modem.packet_type,
+                init_time,
+            )
             anchor_list.append(anchor_modem)
             self.anchor_id_list.append(anchor.modem.id)
             # self.logger.info(f'Adding modem with id {anchor.modem.id}')
 
         return anchor_list
 
-    def fill_agent_modem_list(self):
+    def fill_agent_modem_list(self, init_time):
         agent_list = []
         self.agent_id_list = []
 
@@ -154,8 +153,10 @@ class acousticSimulation:
             self.agent.modem.id,
             self.agent.modem.delay_time,
             self.agent.modem.packet_reception_rate,
-            self.agent.modem.dst,
-            self.agent.modem.packet_type)
+            self.agent.modem.destination_id,
+            self.agent.modem.packet_type,
+            init_time,
+        )
         agent_list.append(agent_modem)
         self.agent_id_list.append(self.agent.modem.id)
         return agent_list

@@ -9,8 +9,8 @@
       
       algorithm: broadcast              # broadcast or alternating -- dann sollte das unten auch angepasst werden - in unterschiedliche files
       time_out_alternating: 1.5         # 
-      poll_circle: timetrgd             # timetrgd: time-triggered or lstacktrgd: time and last-poll triggered
-      poll_circle_time: 3.0             # 
+      poll_trigger: time                # time: time-triggered or time_and_last_ack: time and last-poll triggered
+      poll_interval: 3.0             # 
       t_wp: 0.01226                     # 
       t_wr: 0.0                         #
       publish_delay: 0.0                #
@@ -28,7 +28,7 @@
         id: 0
         delay_time: 0.0                 # delay before sending acknowledgement
         packet_reception_rate: 1.0
-        dst: broadcast                  # brauchen wir das nochmal?
+        destination_id: broadcast                  # brauchen wir das nochmal?
         packet_type: TYPE_RANGING_POLL
       position: 
         x: 0.0
@@ -41,7 +41,7 @@
         id: 1
         delay_time: 0.0
         packet_reception_rate: 1.0
-        dst: broadcast
+        destination_id: broadcast
         packet_type: TYPE_RANGING_ACK
       position: 
         x: -5.0
@@ -54,7 +54,7 @@
         id: 2
         delay_time: 0.7
         packet_reception_rate: 1.0
-        dst: broadcast
+        destination_id: broadcast
         packet_type: TYPE_RANGING_ACK
       position:
         x: -5.0
@@ -67,7 +67,7 @@
         id: 3
         delay_time: 1.4
         packet_reception_rate: 1.0
-        dst: broadcast
+        destination_id: broadcast
         packet_type: TYPE_RANGING_ACK
       position:
         x: 5.0
@@ -80,7 +80,7 @@
         id: 4
         delay_time: 2.1
         packet_reception_rate: 1.0
-        dst: broadcast
+        destination_id: broadcast
         packet_type: TYPE_RANGING_ACK
       position:
         x: 5.0

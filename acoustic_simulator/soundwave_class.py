@@ -1,28 +1,32 @@
 #!/usr/bin/env python
+import numpy as np
+from acoustic_simulator.packet_class import packet
+
+
 class soundwave_cl:
 
-    def __init__(self, position, packet):
-        self.radius = 0
-        self.radius_t_1 = 0   # at timestep t-1
-        self.position = position
+    def __init__(self, origin_position: np.ndarray, packet: packet):
+        self.radius_current = 0
+        self.radius_last = 0  # at timestep t-1
+        self.origin_position = origin_position
         self.packet = packet
 
     def update(self, dt, SOS):
-        self.radius_t_1 = self.radius
-        self.radius += dt * SOS
+        self.radius_last = self.radius_current
+        self.radius_current += dt * SOS
 
-    def getRadius(self):
-        return self.radius
+    def get_radius_current(self):
+        return self.radius_current
 
-    def getRadius_t_1(self):
-        return self.radius_t_1
+    def get_radius_last(self):
+        return self.radius_last
 
-    def getPosition(self):
-        return self.position
+    def get_origin_position(self):
+        return self.origin_position
 
-    def getPacket(self):
+    def get_packet(self):
         return self.packet
 
-    def setRadius(self, dt, SOS):
-        self.radius = dt * SOS
-        self.radius_t_1 = self.radius
+    def set_radius(self, dt, SOS):
+        self.radius_current = dt * SOS
+        self.radius_last = self.radius_current

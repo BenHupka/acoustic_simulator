@@ -7,112 +7,132 @@ import os
 import math
 from acoustic_simulator.params import AcousticParams, AnchorParams, AgentParams
 from dataclasses import astuple
+from rclpy.impl import rcutils_logger
+from collections import deque
 
 
 class modem:
 
-    def __init__(self, acoustic_params: AcousticParams, typ, position, ID,
-                 DelayTime, packetReceptionRate, dst, packetType):
+    def __init__(self, acoustic_params: AcousticParams, type, position, id,
+                 delay_duration, packet_reception_rate, destination_id,
+                 packet_type, init_time):
 
         self.acoustic_params = acoustic_params
 
         self.state = "IDLE"
 
-        self.role = typ
-        self.packetTyp = packetType
+        self.role = type
+        self.packet_type = packet_type
         self.position = np.array(astuple(position)).reshape((-1, 1))
-        self.modemID = ID
+        self.modem_id = id
         self.T_wp = self.acoustic_params.t_wp
         self.T_wr = self.acoustic_params.t_wr
-        self.pollcircle = self.acoustic_params.poll_circle
-        self.packetReceptionRate = packetReceptionRate
-        self.packetLengthPoll = self.acoustic_params.packet_length_poll
-        self.packetLengthResponse = self.acoustic_params.packet_length_response
-        self.publishDelay = self.acoustic_params.publish_delay
-        self.PollCircleTime = self.acoustic_params.poll_circle_time
-        self.TimeOutAlternating = self.acoustic_params.time_out_alternating
-        self.numberAnchor = self.acoustic_params.number_anchors
+        self.poll_trigger = self.acoustic_params.poll_trigger
+        self.packet_reception_rate = packet_reception_rate
+        self.packet_length_poll = self.acoustic_params.packet_length_poll
+        self.packet_length_response = self.acoustic_params.packet_length_response
+        self.publish_delay = self.acoustic_params.publish_delay
+        self.poll_interval = self.acoustic_params.poll_interval
+        self.time_out_alternating = self.acoustic_params.time_out_alternating
+        self.number_anchors = self.acoustic_params.number_anchors
         self.algorithm = self.acoustic_params.algorithm
 
         if self.algorithm == "alternating":
-            self.delay = 0
+            self.delay_duration = 0.0
         else:
-            self.delay = DelayTime
+            self.delay_duration = delay_duration
 
-        self.dst = dst
+        # das sollte der nächste Zeitpunkt sein, wann delay vorbei ist??
+        self.delay_time = init_time
+
+        self.destination_id = destination_id
         self.SOS = self.acoustic_params.sos
 
-        self.sim_time = 0
-        self.last_sim_time = 0
+        self.sim_time_current = init_time
+        self.sim_time_last_step = init_time
 
-        self.soundwaveList = []
+        self.soundwave_list = []
         self.last_soundwaveList = []
-        self.receivingList = []
-        self.receivingTimeList = []
-        self.last_poll = 0
-        self.next_poll = self.last_poll + self.PollCircleTime
-        self.inRange = False
+        self.receiving_list = []
+        self.receiving_time_list = []
+        self.time_last_poll = init_time
+        self.next_poll = self.time_last_poll + self.poll_interval
+        self.soundwave_is_in_range = False
 
-        self.transmitEndTime = None
-        self.packet = None
-        self.soundwave = None
-        self.receivedSoundwave = None
-        self.receivingTime = 0
+        self.transmit_end_time = None
+        self.received_soundwave = None
+        self.receiving_time = 0
 
-        self.publishFlag = False
-        self.publishedMessage = None
+        self.publish_flag = False
+        self.published_message = None
         self.last_position = position
-        self.transmitPrcTime = 0
-        self.AnchorPrcTime = self.T_wp + self.delay
-        self.AckCounter = 0
+        self.transmit_prc_time = 0
+        self.anchor_prc_time = self.T_wp + self.delay_duration
+        self.ack_counter = 0
 
-        self.PollPermitted = False
+        self.poll_permitted = False
 
-        #debugging
-        self.swCounter = 0
+        # debugging
+        self.sw_counter = 0
         self.realDist = 0
 
-    def update(self, position, soundwaveList, sim_time, SOS, dst):
-        self.updateDst(dst)
-        self.updatePosition(position)
-        self.updateSimTime(sim_time)
-        self.updateSoundwaveList(soundwaveList)
-        self.updateSOS(SOS)
+        self.logger = rcutils_logger.RcutilsLogger(name="modem")
+
+    def update(self, position: np.ndarray, soundwave_list: deque,
+               sim_time: float, SOS: float, destination_id: str):
+
+        # if len(soundwaveList):
+        #     self.logger.info(
+        #         f'There are {len(soundwaveList)} soundwaves around!')
+        # else:
+        #     self.logger.info(f'Currently no travelling soundwaves')
+
+        self.logger.warn(
+            f'\n I am a modem of role: {self.role} \nposition shape: {self.position.shape}'
+        )
+
+        self.update_destination_id(destination_id)
+        self.update_position(position)
+        self.update_sim_time(sim_time)
+        self.update_soundwave_list(soundwave_list)
+        self.update_sos(SOS)
         ret = None
 
         if self.state == "IDLE":
             if self.algorithm == "broadcast":
-                if self.pollcircle == "timetrgd":
-                    if self.role == "agent" and self.next_poll <= self.sim_time:
+                if self.poll_trigger == "time":
+                    # T_poll_interval reached
+                    if self.role == "agent" and self.next_poll <= self.sim_time_current:
                         self.state = "DELAY"
                         self.resetAckCounter()
-                        self.delayTime = self.sim_time + self.T_wr
+                        self.delay_time = self.sim_time_current + self.T_wr
 
-                elif self.pollcircle == "lstAcktrgd":
+                elif self.poll_trigger == "time_and_last_ack":
+                    # T_poll_interval reached
                     if self.role == "agent" and (
-                            self.next_poll <= self.sim_time
-                            or self.AckCounter >= self.numberAnchor):
+                            self.next_poll <= self.sim_time_current
+                            or self.ack_counter >= self.number_anchors):
                         self.resetAckCounter()
                         self.state = "DELAY"
-                        self.delayTime = self.sim_time + self.T_wr
+                        self.delay_time = self.sim_time_current + self.T_wr
 
                 else:
                     print("[Modem] Wrong Pollcircle!")
 
             elif self.algorithm == "alternating":
-                if self.pollcircle == "timetrgd":
-                    if self.role == "agent" and self.next_poll <= self.sim_time:
+                if self.poll_trigger == "time":
+                    if self.role == "agent" and self.next_poll <= self.sim_time_current:
                         self.state = "DELAY"
-                        self.delayTime = self.sim_time + self.T_wr
-                        self.PollPermitted = False
+                        self.delay_time = self.sim_time_current + self.T_wr
+                        self.poll_permitted = False
 
-                elif self.pollcircle == "lstAcktrgd":
+                elif self.poll_trigger == "time_and_last_ack":
                     if self.role == "agent" and (
-                            self.PollPermitted
-                            or self.next_poll <= self.sim_time):
+                            self.poll_permitted
+                            or self.next_poll <= self.sim_time_current):
                         self.state = "DELAY"
-                        self.delayTime = self.sim_time + self.T_wr
-                        self.PollPermitted = False
+                        self.delay_time = self.sim_time_current + self.T_wr
+                        self.poll_permitted = False
 
                 else:
                     print("[Modem] Wrong Pollcircle!")
@@ -122,43 +142,45 @@ class modem:
             self.resetReceivingList()
 
             # sollte das modem nicht nur eine soundwave/packet zur zeit receiven können??
-            for soundwave in soundwaveList:
+            for soundwave_received in soundwave_list:
 
-                if self.isInRange(soundwave) and self.state == "IDLE":
-                    self.receivedPacket = soundwave.getPacket().getPacketDict()
-                    self.receivingTime = self.interpolateReceivingTime(
-                        soundwave)
-                    self.receivingTimeList.append(self.receivingTime)
-                    self.receivingList.append(self.receivedPacket)
+                if self.is_in_range(
+                        soundwave_received) and self.state == "IDLE":
+                    self.received_packet = soundwave_received.get_packet(
+                    ).get_packet_dict()
+                    self.receiving_time = self.interpolate_receiving_time(
+                        soundwave_received)
+                    self.receiving_time_list.append(self.receiving_time)
+                    self.receiving_list.append(self.received_packet)
 
-            if self.receivingList:
-                index = min(range(len(self.receivingTimeList)),
-                            key=self.receivingTimeList.__getitem__)
-                self.receivedPacket = self.receivingList[index]
-                self.receivingTime = self.receivingTimeList[index]
+            if self.receiving_list:
+                index = min(range(len(self.receiving_time_list)),
+                            key=self.receiving_time_list.__getitem__)
+                self.received_packet = self.receiving_list[index]
+                self.receiving_time = self.receiving_time_list[index]
                 self.state = "RECEIVE"
-                self.exittime = self.receivingTime + self.receivedPacket[
+                self.exit_time = self.receiving_time + self.received_packet[
                     "length"]
 
         if self.state == "RECEIVE":
-            if self.exittime <= self.sim_time:
-                if self.receivedPacket[
+            if self.exit_time <= self.sim_time_current:
+                if self.received_packet[
                         "type"] == "TYPE_RANGING_POLL" and self.role == "anchor" and (
-                            self.receivedPacket["dst"] == self.modemID
-                            or self.receivedPacket["dst"] == "broadcast"):
+                            self.received_packet["dst"] == self.modem_id
+                            or self.received_packet["dst"] == "broadcast"):
                     if self.packetLost():
                         self.state = "IDLE"
                     else:
                         self.state = "DELAY"
-                        self.delayTime = self.exittime + self.delay + self.T_wp
+                        self.delay_time = self.exit_time + self.delay_duration + self.T_wp
 
-                elif self.receivedPacket[
+                elif self.received_packet[
                         "type"] == "TYPE_RANGING_ACK" and self.role == "agent" and (
-                            self.receivedPacket["dst"] == self.modemID
-                            or self.receivedPacket["dst"] == "broadcast"):
+                            self.received_packet["dst"] == self.modem_id
+                            or self.received_packet["dst"] == "broadcast"):
                     self.runtime = float(
-                        self.receivingTime - self.last_poll -
-                        self.receivedPacket["AnchorPrcTime"]
+                        self.receiving_time - self.time_last_poll -
+                        self.received_packet["AnchorPrcTime"]
                     )  # AnchorPrcTime = delay + PrcTime + Zeitausgleich durch diskrete iteration (schallwelle)
 
                     self.SOS = self.getSOS()
@@ -166,109 +188,140 @@ class modem:
                         np.random.normal(
                             self.acoustic_params.meas_noise_mean,
                             self.acoustic_params.meas_noise_std_dev, 1))
-                    exittime = self.exittime + self.publishDelay
-                    if exittime <= self.sim_time:
+
+                    # Was passiert hier??
+                    exittime = self.exit_time + self.publish_delay
+                    # Was wird hier abgefragt??
+                    if exittime <= self.sim_time_current:
                         if self.packetLost():
                             self.state = "IDLE"
                         else:
-                            realDist = self.realDistance(
-                                self.receivingTime,
-                                self.receivedPacket["tx_pos"])
-                            distError = dist - realDist
+                            real_dist = self.real_distance(
+                                self.receiving_time,
+                                self.received_packet["tx_pos"])
+                            dist_error = dist - real_dist  # sollte nur positiv sein
                             self.publish(
-                                self.receivingTime, dist, realDist, distError,
-                                self.exittime, self.receivedPacket["src"],
-                                self.receivedPacket["tx_pos"],
-                                self.packetLengthResponse, self.packetLengthPoll
+                                self.receiving_time,
+                                dist,
+                                real_dist,
+                                dist_error,
+                                self.exit_time,
+                                self.received_packet["src"],
+                                self.received_packet["tx_pos"],
+                                self.packet_length_response,
+                                self.packet_length_poll,
                             )  # exittime - packetLengthResponse - publishDelay = True meas Time
-                            self.PollPermitted = True
-                            self.AckCounter += 1
+                            self.poll_permitted = True
+                            self.ack_counter += 1
                             self.state = "IDLE"
                 else:
                     self.state = "IDLE"
 
         if self.state == "DELAY":
-            if self.delayTime <= self.sim_time:
+            if self.delay_time <= self.sim_time_current:
                 self.state = "TRANSMIT"
+                # set current time, position as transmission time and position
+                tx_time = self.sim_time_current
+                tx_position = self.position
 
                 if self.role == "agent":
-                    self.packet = packet(self.acoustic_params, self.sim_time,
-                                         self.position, self.packetTyp,
-                                         self.modemID, self.dst, 0,
-                                         self.packetLengthPoll)
-                    self.soundwave = soundwave_cl(self.position, self.packet)
-                    self.transmitEndTime = self.sim_time + self.packetLengthPoll
-                    self.last_poll = float(self.sim_time)
+                    packet_to_transmit = packet(
+                        config=self.acoustic_params,
+                        tx_time=tx_time,
+                        tx_pos=tx_position,
+                        type=self.packet_type,
+                        src=self.modem_id,
+                        dst=self.destination_id,
+                        time_diff=0.0,  # nicht verwendet, unklar wofür das war
+                        length=self.packet_length_poll,
+                    )
+                    soundwave_to_transmit = soundwave_cl(
+                        tx_position, packet_to_transmit)
+                    self.transmit_end_time = self.sim_time_current + self.packet_length_poll
+                    self.time_last_poll = self.sim_time_current
                     if self.algorithm == "broadcast":
-                        self.next_poll = self.last_poll + self.PollCircleTime
+                        self.next_poll = self.time_last_poll + self.poll_interval
                     elif self.algorithm == "alternating":
-                        self.next_poll = self.last_poll + self.TimeOutAlternating
-                    ret = self.soundwave
-                    self.swCounter += 1
+                        self.next_poll = self.time_last_poll + self.time_out_alternating
+                    ret = soundwave_to_transmit
+                    self.sw_counter += 1
 
                 if self.role == "anchor":
-                    self.transmitEndTime = self.sim_time + self.packetLengthResponse
-                    self.packet = packet(self.acoustic_params, self.sim_time,
-                                         self.position, self.packetTyp,
-                                         self.modemID, self.dst, 0,
-                                         self.packetLengthResponse)
-                    self.packet.setAnchorPrcTime(self.sim_time -
-                                                 self.receivingTime)
-                    self.soundwave = soundwave_cl(self.position, self.packet)
-                    ret = self.soundwave
-                    self.swCounter += 1
+                    self.transmit_end_time = self.sim_time_current + self.packet_length_response
+                    packet_to_transmit = packet(
+                        config=self.acoustic_params,
+                        tx_time=tx_time,
+                        tx_pos=tx_position,
+                        type=self.packet_type,
+                        src=self.modem_id,
+                        dst=self.destination_id,
+                        time_diff=0.0,  # nicht verwendet, unklar wofür das war
+                        length=self.packet_length_response,
+                    )
+                    packet_to_transmit.set_anchor_prc_time(
+                        self.sim_time_current - self.receiving_time)
+                    soundwave_to_transmit = soundwave_cl(
+                        tx_position, packet_to_transmit)
+                    ret = soundwave_to_transmit
+                    self.sw_counter += 1
 
         if self.state == "TRANSMIT":
-            if self.transmitEndTime <= self.sim_time:
+            if self.transmit_end_time <= self.sim_time_current:
                 self.state = "IDLE"
 
-        return ret  #new Packet for soundwaveList
+        return ret  # new Packet for soundwaveList  # Das ist die Soundwave, nicht das packet!!
 
-    def isInRange(self, soundwave):
-        radiusSoundwave = soundwave.getRadius()
-        rangeReceiver = np.absolute(
-            np.linalg.norm(
-                np.array(self.position - np.array(soundwave.getPosition()))))
+    def is_in_range(self, soundwave):
+        radius_soundwave = soundwave.get_radius_current()
+        # if self.position.shape is not (3, 1):
+        #     self.logger.warn(f'Position shape not correct!')
 
-        if radiusSoundwave >= rangeReceiver:
-            self.inRange = True
+        range_receiver = np.linalg.norm(self.position -
+                                        soundwave.get_origin_position())
+
+        if radius_soundwave >= range_receiver:
+            self.soundwave_is_in_range = True
             return True
 
         return False
 
-    def interpolateReceivingTime(self, soundwave):
-        rangeReceiver = np.absolute(
+    def interpolate_receiving_time(self, soundwave):
+        range_current_time_step = np.absolute(
             np.linalg.norm(
-                np.array(self.position - np.array(soundwave.getPosition()))))
-        rangeReceiver_t_1 = np.absolute(
+                np.array(self.position -
+                         np.array(soundwave.get_origin_position()))))
+        # debugging test
+        # range_received = np.absolute
+        range_last_time_step = np.absolute(
             np.linalg.norm(
                 np.array(self.last_position -
-                         np.array(soundwave.getPosition()))))
-        dRangeReceiver = rangeReceiver - rangeReceiver_t_1
-        dRangeSoundwave = soundwave.getRadius() - soundwave.getRadius_t_1()
+                         np.array(soundwave.get_origin_position()))))
+        dRangeReceiver = range_current_time_step - range_last_time_step
+        dRangeSoundwave = soundwave.get_radius_current(
+        ) - soundwave.get_radius_last()
 
-        if self.inRange == True:  # if soundwave reached receiver and soundwave t-1 has not rechead receiver, calculate intersection with the help of interpolation
-            self.t_runtime = self.last_sim_time + (
-                self.sim_time - self.last_sim_time
-            ) * (soundwave.getRadius_t_1() - rangeReceiver_t_1) / (
+        if self.soundwave_is_in_range == True:  # if soundwave reached receiver and soundwave t-1 has not rechead receiver, calculate intersection with the help of interpolation
+            self.t_runtime = self.sim_time_last_step + (
+                self.sim_time_current - self.sim_time_last_step
+            ) * (soundwave.get_radius_last() - range_last_time_step) / (
                 dRangeReceiver - dRangeSoundwave)  # "true" runtime soundwave
-            self.sim_time_last_ack = self.sim_time
-            self.inRange = False
+            self.sim_time_last_ack = self.sim_time_current
+            self.soundwave_is_in_range = False
             return self.t_runtime
 
-    def publish(self, receivingTime, dist, realDist, DistError, exittime, ID,
-                position, PacketLengthPoll, PacketLengthResponse):
-        self.publishFlag = True
-        self.publishedMessage = {
-            "tr": receivingTime,
+    def publish(self, receiving_time, dist, real_dist, dist_error, exit_time,
+                ID, position, packet_length_poll, packet_length_response):
+        self.publish_flag = True
+        self.published_message = {
+            "tr": receiving_time,
             "dist": dist,
-            "realDist": realDist,
-            "Error": DistError,
-            "time_published": exittime,
+            "realDist": real_dist,
+            "Error": dist_error,
+            "time_published": exit_time,
             "ModemID": ID,
             "ModemPos": position,
-            "PacketLengthPoll": PacketLengthPoll,
-            "PacketLengthResponse": PacketLengthResponse
+            "PacketLengthPoll": packet_length_poll,
+            "PacketLengthResponse": packet_length_response
         }
 
     def getSOS(self):
@@ -278,59 +331,59 @@ class modem:
         return self.position
 
     def resetAckCounter(self):
-        self.AckCounter = 0
+        self.ack_counter = 0
 
     def resetReceivingList(self):
-        self.receivingList = []
-        self.receivingTimeList = []
+        self.receiving_list = []
+        self.receiving_time_list = []
 
     def packetLost(self):
-        if np.random.binomial(1, (self.packetReceptionRate)) == 1:
+        if np.random.binomial(1, (self.packet_reception_rate)) == 1:
             return False
         return True
 
-    def updateDst(self, dst):
-        self.dst = dst
+    def update_destination_id(self, destination_id):
+        self.destination_id = destination_id
 
-    def updateSOS(self, SOS):
+    def update_sos(self, SOS):
         self.SOS = SOS
 
-    #Helpfunction
-    def realDistance(self, receivingTime, AnchorPosition):
+    # Helpfunction
+    def real_distance(self, receiving_time, anchor_position):
 
-        AgentPosition = np.array(self.position)
+        agent_position = np.array(self.position)
 
-        realDist = np.linalg.norm(np.array(AnchorPosition) - AgentPosition)
+        realDist = np.linalg.norm(np.array(anchor_position) - agent_position)
         return realDist
 
-    def updatePosition(self, position):
+    def update_position(self, position):
         self.last_position = self.position
         self.position = position
 
-    def updateSimTime(self, sim_time):
-        self.last_sim_time = self.sim_time
-        self.sim_time = sim_time
+    def update_sim_time(self, sim_time):
+        self.sim_time_last_step = self.sim_time_current
+        self.sim_time_current = sim_time
 
-    def updateSoundwaveList(self, soundwaveList):
-        self.last_soundwaveList = self.soundwaveList
-        self.soundwaveList = soundwaveList
+    def update_soundwave_list(self, soundwaveList):
+        self.last_soundwaveList = self.soundwave_list
+        self.soundwave_list = soundwaveList
 
-    def setPublishedFlag(self, bool):
-        self.publishFlag = bool
+    def set_new_measurement_flag(self, bool):
+        self.publish_flag = bool
 
-    def sendPoll(self, dst):
-        self.delayTime = self.sim_time
-        self.updateDst(dst)
+    def send_poll(self, destination_id):
+        self.delay_time = self.sim_time_current
+        self.update_destination_id(destination_id)
         self.state = "DELAY"
 
-    def getPublished(self):
-        return self.publishFlag
+    def new_measurement_available(self):
+        return self.publish_flag
 
-    def getPublishedMessage(self):
-        return self.publishedMessage
+    def get_received_measurement(self):
+        return self.published_message
 
-    def getSoundwaves(self):
-        return self.soundwaveList
+    def get_soundwaves(self):
+        return self.soundwave_list
 
-    def getSWCounter(self):
-        return self.modemID, self.swCounter
+    def get_sw_counter(self):
+        return self.modem_id, self.sw_counter

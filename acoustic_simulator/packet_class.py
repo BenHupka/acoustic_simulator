@@ -7,7 +7,7 @@ from acoustic_simulator.params import AcousticParams
 class packet:
 
     def __init__(self, config: AcousticParams, tx_time, tx_pos, type, src, dst,
-                 TimeDiff, length):
+                 time_diff, length):
         self.acoustic_params = config
         # tmp = os.path.dirname(__file__)
         # file_path_filter = os.path.join(tmp,
@@ -19,13 +19,13 @@ class packet:
         self.tx_time = tx_time
         self.tx_pos = tx_pos
         self.length = length
-        self.anchorPrcTime = 0
+        self.anchor_prc_time = 0
         self.type = type
         self.src = src
         self.dst = dst
         self.timeout = self.acoustic_params.time_out + self.tx_time  # timeout aus configfile
 
-    def getPacketDict(self):
+    def get_packet_dict(self):
         self.dict = {
             "tx_time": self.tx_time,
             "tx_pos": self.tx_pos,
@@ -34,9 +34,9 @@ class packet:
             "dst": self.dst,
             "timeout": self.timeout,
             "length": self.length,
-            "AnchorPrcTime": self.anchorPrcTime
+            "AnchorPrcTime": self.anchor_prc_time
         }
         return self.dict
 
-    def setAnchorPrcTime(self, t):
-        self.anchorPrcTime = t
+    def set_anchor_prc_time(self, t):
+        self.anchor_prc_time = t

@@ -29,7 +29,7 @@ class GroundTruthNode(Node):
             self.debug_pub_list.append(pub)
 
         self.odometry_sub = self.create_subscription(Odometry,
-                                                     'odometry',
+                                                     'ground_truth/odometry',
                                                      self.on_odometry,
                                                      qos_profile=1)
         self.anchor_poses_sub = self.create_subscription(AnchorPoses,

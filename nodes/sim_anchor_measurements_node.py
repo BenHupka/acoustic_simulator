@@ -11,6 +11,10 @@ from acoustic_simulator.acoustic_sim_class import acousticSimulation
 from acoustic_simulator.params import read_params_recursion, AnchorParams, AcousticParams, AgentParams, ModemParams, PositionParams
 
 import threading
+import numpy as np
+
+# hippo_simulation/hippo_sim/models/bluerov/urdf/bluerov_macro.xacro:
+#  - ground truth odometry publish rate auf 300 setzen (simulation läuft mit 250Hz)
 
 
 class SimulateAnchorMeasurementsNode(Node):
@@ -63,7 +67,7 @@ class SimulateAnchorMeasurementsNode(Node):
                                                 qos_profile=1)
 
         self.odometry_sub = self.create_subscription(Odometry,
-                                                     'odometry',
+                                                     'ground_truth/odometry',
                                                      self.on_odometry,
                                                      qos_profile=1)
 
@@ -86,6 +90,10 @@ class SimulateAnchorMeasurementsNode(Node):
 
             self.send_measurement(measurement["ModemID"], measurement["dist"],
                                   measurement["time_published"])
+
+            self.send_distance_error(measurement["ModemID"],
+                                     measurement["Error"],
+                                     measurement["time_published"])
             self.get_logger().info(
                 f'At time t={t} \n Received measurement from modem {measurement["ModemID"]}, distance measured: {measurement["dist"]:.2f} \n Agent position was: {self.agent_position[0]}, {self.agent_position[1]}, {self.agent_position[2]}'
             )
@@ -97,8 +105,8 @@ class SimulateAnchorMeasurementsNode(Node):
         p = msg.pose.pose.position
         v = msg.twist.twist.linear
         with self.lock:
-            self.agent_position = [p.x, p.y, p.z]
-            self.agent_velocity = [v.x, v.y, v.z]
+            self.agent_position = np.array([p.x, p.y, p.z]).reshape((3, 1))
+            self.agent_velocity = np.array([v.x, v.y, v.z]).reshape((3, 1))
 
     def send_measurement(self, id: int, dist: float, t: float):
         msg = ModemOut()
@@ -112,11 +120,11 @@ class SimulateAnchorMeasurementsNode(Node):
         # publish measurement in modem-specific topic
         self.modem_publisher_list[id - 1].publish(msg)
 
-    def send_distance_error(self, id: int, err: float, t: float):
+    def send_distance_error(self, id: int, error: float, t: float):
         # TODO: add 'error' entry to ModemOut instead
         msg = ModemOut()
         msg.header = self.fill_header_timestamp(t)
-        msg.distance = err
+        msg.distance = error
         msg.id = id
 
         self.modem_error_publisher_list[id - 1].publish(msg)

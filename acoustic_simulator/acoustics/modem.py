@@ -11,8 +11,7 @@ class modem:
     def __init__(self, typ, name, position, ID, DelayTime, packetReceptionRate,
                  dst, packetType):
         tmp = os.path.dirname(__file__)
-        file_path_filter = os.path.join(tmp,
-                                        '../config/acoustic_config.json')
+        file_path_filter = os.path.join(tmp, '../config/acoustic_config.json')
         f = open(file_path_filter)
         self.config = json.load(f)
         f.close()
@@ -32,8 +31,7 @@ class modem:
             "PacketLengthResponse"]
         self.publishDelay = self.config["config"][0]["PublishDelay"]
         self.PollCircleTime = self.config["config"][0]["PollCircleTime"]
-        self.TimeOutAlternating = self.config["config"][0][
-            "TimeOutAlternating"]
+        self.TimeOutAlternating = self.config["config"][0]["TimeOutAlternating"]
         self.numberAnchor = self.config["config"][0]["numberAnchor"]
         self.algorithm = self.config["config"][0]["algorithm"]
 
@@ -110,9 +108,9 @@ class modem:
                         self.PollPermitted = False
 
                 elif self.pollcircle == "lstAcktrgd":
-                    if self.role == "agent" and (self.PollPermitted
-                                                 or self.next_poll
-                                                 <= self.sim_time):
+                    if self.role == "agent" and (
+                            self.PollPermitted
+                            or self.next_poll <= self.sim_time):
                         self.state = "DELAY"
                         self.delayTime = self.sim_time + self.T_wr
                         self.PollPermitted = False
@@ -180,8 +178,7 @@ class modem:
                                 self.receivingTime, dist, realDist, distError,
                                 self.exittime, self.receivedPacket["src"],
                                 self.receivedPacket["tx_pos"],
-                                self.packetLengthResponse,
-                                self.packetLengthPoll
+                                self.packetLengthResponse, self.packetLengthPoll
                             )  # exittime - packetLengthResponse - publishDelay = True meas Time
                             self.PollPermitted = True
                             self.AckCounter += 1
@@ -195,8 +192,8 @@ class modem:
 
                 if self.role == "agent":
                     self.packet = packet(self.sim_time, self.position,
-                                         self.packetTyp, self.modemID,
-                                         self.dst, 0, self.packetLengthPoll)
+                                         self.packetTyp, self.modemID, self.dst,
+                                         0, self.packetLengthPoll)
                     self.soundwave = soundwave_cl(self.position, self.packet)
                     self.transmitEndTime = self.sim_time + self.packetLengthPoll
                     self.last_poll = float(self.sim_time)
@@ -210,11 +207,10 @@ class modem:
                 if self.role == "anchor":
                     self.transmitEndTime = self.sim_time + self.packetLengthResponse
                     self.packet = packet(self.sim_time, self.position,
-                                         self.packetTyp, self.modemID,
-                                         self.dst, 0,
-                                         self.packetLengthResponse)
-                    self.packet.setAnchorPrcTime(self.sim_time -
-                                                 self.receivingTime)
+                                         self.packetTyp, self.modemID, self.dst,
+                                         0, self.packetLengthResponse)
+                    self.packet.set_anchor_prc_timme(self.sim_time -
+                                                     self.receivingTime)
                     self.soundwave = soundwave_cl(self.position, self.packet)
                     ret = self.soundwave
                     self.swCounter += 1

@@ -33,7 +33,7 @@ class ModemParams:
     id: int = 0
     delay_time: float = 0.0
     packet_reception_rate: float = 0.0
-    dst: str = ''
+    destination_id: str = ''
     packet_type: str = ''
 
 
@@ -67,8 +67,8 @@ class AcousticParams:
     sos: float = 0.0
     algorithm: str = ''
     time_out_alternating: float = 0.0
-    poll_circle: str = ''
-    poll_circle_time: float = 0.0
+    poll_trigger: str = ''
+    poll_interval: float = 0.0
     t_wp: float = 0.0
     t_wr: float = 0.0
     publish_delay: float = 0.0
