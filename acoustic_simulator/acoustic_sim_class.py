@@ -39,16 +39,18 @@ class acousticSimulation:
             self.destination_id)  # Agent sends first Poll
         self.dst_counter = 0
 
-    def simulate(self, agent_position: np.ndarray, t: float) -> Any:
+    def simulate(self, agent_position: np.ndarray, anchors: list[AnchorParams],
+                 t: float) -> Any:
+        # update anchor position
+        self.anchors = anchors
+
+        # update time
         self.t = float(t)  # in seconds
         self.dt = float(self.t - self.last_t)
         self.last_t = self.t
-        # self.logger.info(
-        #     f' \n Simulating for t= {t} \n Agent position: {agent_position} \n dt = {self.dt}',
-        #     throttle_duration_sec=0.5)
 
         # update radius of each soundwave
-        self.update_soundwave(self.dt)
+        self.update_soundwaves(self.dt)
 
         # delete all soundwaves that have been around for longer than their timeout
         self.delete_soundwave()
@@ -59,7 +61,7 @@ class acousticSimulation:
         self.update_anchor_modems()
         return self.get_modem_measurement()  # measurement, is what type?!
 
-    def update_soundwave(self, dt: float):
+    def update_soundwaves(self, dt: float):
         sos = self.acoustic_params.sos
         # self.logger.info(f'Number of soundwaves: {len(self.soundwave_list)}')
         for soundwave in self.soundwave_list:

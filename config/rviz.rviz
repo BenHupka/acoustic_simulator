@@ -107,13 +107,13 @@ Visualization Manager:
       Enabled: true
       Name: MarkerArray
       Namespaces:
-        {}
+        anchors: true
       Topic:
         Depth: 5
         Durability Policy: Volatile
         History Policy: Keep Last
         Reliability Policy: Reliable
-        Value: /uuv00/acoustic_sim_test_node/marker_array
+        Value: /bluerov00/anchor_poses/marker_array
       Value: true
     - Class: rviz_default_plugins/Marker
       Enabled: true
@@ -132,7 +132,7 @@ Visualization Manager:
       Enabled: true
       Name: MarkerArray
       Namespaces:
-        anchors: true
+        {}
       Topic:
         Depth: 5
         Durability Policy: Volatile
@@ -222,5 +222,5 @@ Window Geometry:
   Views:
     collapsed: false
   Width: 1531
-  X: -19
-  Y: 1337
+  X: 203
+  Y: 1366

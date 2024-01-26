@@ -45,10 +45,6 @@ class SimulateAnchorMeasurementsNode(Node):
                                                'modems',
                                                qos_profile=1)
 
-        self.anchor_poses_pub = self.create_publisher(AnchorPoses,
-                                                      'anchor_poses',
-                                                      qos_profile=1)
-
         self.modem_publisher_list = []
         for i in range(self.number_anchors):
             topic_name = 'modem_' + str(
@@ -62,28 +58,27 @@ class SimulateAnchorMeasurementsNode(Node):
             pub = self.create_publisher(ModemOut, topic_name, qos_profile=1)
             self.modem_error_publisher_list.append(pub)
 
-        self.marker_pub = self.create_publisher(MarkerArray,
-                                                '~/marker_array',
-                                                qos_profile=1)
-
         self.odometry_sub = self.create_subscription(Odometry,
                                                      'ground_truth/odometry',
                                                      self.on_odometry,
                                                      qos_profile=1)
 
+        self.anchor_poses_sub = self.create_subscription(AnchorPoses,
+                                                         'anchor_poses',
+                                                         self.on_anchor_poses,
+                                                         qos_profile=1)
+
         self.acoustics_timer = self.create_timer(
             timer_period_sec=(1 / self.rate_accoustics),
             callback=self.simulate_acoustics)
-
-        self.anchor_poses_timer = self.create_timer(
-            timer_period_sec=(1 / 1.0), callback=self.publish_anchor_poses)
 
     def simulate_acoustics(self):
         t = self.get_clock().now().nanoseconds
         t = t * 1e-9  # convert time to seconds
         with self.lock:
             # What about moving buoys etc?
-            measurement = self.acoustic_sim.simulate(self.agent_position, t)
+            measurement = self.acoustic_sim.simulate(self.agent_position,
+                                                     self.anchors, t)
 
             if measurement is None:
                 return
@@ -95,11 +90,8 @@ class SimulateAnchorMeasurementsNode(Node):
                                      measurement["Error"],
                                      measurement["time_published"])
             self.get_logger().info(
-                f'At time t={t} \n Received measurement from modem {measurement["ModemID"]}, distance measured: {measurement["dist"]:.2f} \n Agent position was: {self.agent_position[0]}, {self.agent_position[1]}, {self.agent_position[2]}'
+                f'At time t={t} \n Received measurement from modem {measurement["ModemID"]}, distance measured: {measurement["dist"]:.2f}'
             )
-
-        # publish anchor rviz markers
-        self.publish_rviz_anchors(self.anchors)
 
     def on_odometry(self, msg: Odometry):
         p = msg.pose.pose.position
@@ -107,6 +99,17 @@ class SimulateAnchorMeasurementsNode(Node):
         with self.lock:
             self.agent_position = np.array([p.x, p.y, p.z]).reshape((3, 1))
             self.agent_velocity = np.array([v.x, v.y, v.z]).reshape((3, 1))
+
+    def on_anchor_poses(self, msg: AnchorPoses):
+        # update positions of anchors to potentially consider drifting drones
+        for anchor_msg in msg.anchors:
+            # find matching ids
+            self.anchors[anchor_msg.id -
+                         1].position.x = anchor_msg.pose.pose.position.x
+            self.anchors[anchor_msg.id -
+                         1].position.y = anchor_msg.pose.pose.position.y
+            self.anchors[anchor_msg.id -
+                         1].position.z = anchor_msg.pose.pose.position.z
 
     def send_measurement(self, id: int, dist: float, t: float):
         msg = ModemOut()
@@ -156,66 +159,6 @@ class SimulateAnchorMeasurementsNode(Node):
                 name, self)
             anchors.append(anchor_params)
         return anchors
-
-    def publish_rviz_markers(self, markers):
-        self.marker_pub.publish(MarkerArray(markers=markers))
-
-    def publish_rviz_anchors(self, anchors: list[AnchorParams]):
-        markers = []
-        for anchor in anchors:
-            marker, text_marker = self.create_anchor_marker(anchor)
-            markers.append(marker)
-            markers.append(text_marker)
-        self.publish_rviz_markers(markers)
-
-    def publish_anchor_poses(self):
-        msg = AnchorPoses()
-        now = self.get_clock().now()
-        msg.header.stamp = now.to_msg()
-        for anchor in self.anchors:
-            single_anchor_msg = AnchorPose()
-            single_anchor_msg.pose.header.stamp = now.to_msg()
-            single_anchor_msg.pose.header.frame_id = 'map'
-            single_anchor_msg.id = anchor.modem.id
-            single_anchor_msg.pose.pose.position.x = anchor.position.x
-            single_anchor_msg.pose.pose.position.y = anchor.position.y
-            single_anchor_msg.pose.pose.position.z = anchor.position.z
-            msg.anchors.append(single_anchor_msg)
-        self.anchor_poses_pub.publish(msg)
-
-    def create_anchor_marker(self, anchor: AnchorParams) -> Marker:
-        marker = Marker()
-        marker.type = Marker.CYLINDER
-        marker.id = anchor.modem.id
-        marker.pose = Pose()
-        marker.pose.position.x = anchor.position.x
-        marker.pose.position.y = anchor.position.y
-        marker.pose.position.z = anchor.position.z
-        marker.color.a = 1.0
-        marker.color.r = 1.0
-        marker.scale.x = 0.3
-        marker.scale.y = 0.3
-        marker.scale.z = 0.3
-
-        marker.header.frame_id = 'map'
-        marker.ns = 'anchors'
-
-        text_marker = Marker()
-        text_marker.type = Marker.TEXT_VIEW_FACING
-        text_marker.id = self.number_anchors + anchor.modem.id
-        text_marker.pose = Pose()
-        text_marker.pose.position.x = anchor.position.x
-        text_marker.pose.position.y = anchor.position.y
-        text_marker.pose.position.z = anchor.position.z + 0.5
-        text_marker.color.a = 1.0
-        text_marker.color.r = 1.0
-        text_marker.color.b = 1.0
-        text_marker.color.g = 1.0
-        text_marker.scale.z = 0.5  # only scale for text markers
-        text_marker.text = f"{anchor.name}"
-        text_marker.header.frame_id = 'map'
-        text_marker.ns = 'anchors'
-        return marker, text_marker
 
 
 def main():

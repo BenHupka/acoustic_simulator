@@ -72,24 +72,10 @@ class modem:
 
         self.poll_permitted = False
 
-        # debugging
-        self.sw_counter = 0
-        self.realDist = 0
-
         self.logger = rcutils_logger.RcutilsLogger(name="modem")
 
     def update(self, position: np.ndarray, soundwave_list: deque,
                sim_time: float, SOS: float, destination_id: str):
-
-        # if len(soundwaveList):
-        #     self.logger.info(
-        #         f'There are {len(soundwaveList)} soundwaves around!')
-        # else:
-        #     self.logger.info(f'Currently no travelling soundwaves')
-
-        self.logger.warn(
-            f'\n I am a modem of role: {self.role} \nposition shape: {self.position.shape}'
-        )
 
         self.update_destination_id(destination_id)
         self.update_position(position)
@@ -141,7 +127,6 @@ class modem:
 
             self.resetReceivingList()
 
-            # sollte das modem nicht nur eine soundwave/packet zur zeit receiven können??
             for soundwave_received in soundwave_list:
 
                 if self.is_in_range(
@@ -197,7 +182,6 @@ class modem:
                             self.state = "IDLE"
                         else:
                             real_dist = self.real_distance(
-                                self.receiving_time,
                                 self.received_packet["tx_pos"])
                             dist_error = dist - real_dist  # sollte nur positiv sein
                             self.publish(
@@ -232,7 +216,6 @@ class modem:
                         type=self.packet_type,
                         src=self.modem_id,
                         dst=self.destination_id,
-                        time_diff=0.0,  # nicht verwendet, unklar wofür das war
                         length=self.packet_length_poll,
                     )
                     soundwave_to_transmit = soundwave_cl(
@@ -244,7 +227,6 @@ class modem:
                     elif self.algorithm == "alternating":
                         self.next_poll = self.time_last_poll + self.time_out_alternating
                     ret = soundwave_to_transmit
-                    self.sw_counter += 1
 
                 if self.role == "anchor":
                     self.transmit_end_time = self.sim_time_current + self.packet_length_response
@@ -255,7 +237,6 @@ class modem:
                         type=self.packet_type,
                         src=self.modem_id,
                         dst=self.destination_id,
-                        time_diff=0.0,  # nicht verwendet, unklar wofür das war
                         length=self.packet_length_response,
                     )
                     packet_to_transmit.set_anchor_prc_time(
@@ -263,7 +244,6 @@ class modem:
                     soundwave_to_transmit = soundwave_cl(
                         tx_position, packet_to_transmit)
                     ret = soundwave_to_transmit
-                    self.sw_counter += 1
 
         if self.state == "TRANSMIT":
             if self.transmit_end_time <= self.sim_time_current:
@@ -273,9 +253,6 @@ class modem:
 
     def is_in_range(self, soundwave):
         radius_soundwave = soundwave.get_radius_current()
-        # if self.position.shape is not (3, 1):
-        #     self.logger.warn(f'Position shape not correct!')
-
         range_receiver = np.linalg.norm(self.position -
                                         soundwave.get_origin_position())
 
@@ -286,21 +263,18 @@ class modem:
         return False
 
     def interpolate_receiving_time(self, soundwave):
-        range_current_time_step = np.absolute(
-            np.linalg.norm(
-                np.array(self.position -
-                         np.array(soundwave.get_origin_position()))))
-        # debugging test
-        # range_received = np.absolute
-        range_last_time_step = np.absolute(
-            np.linalg.norm(
-                np.array(self.last_position -
-                         np.array(soundwave.get_origin_position()))))
+        range_current_time_step = np.linalg.norm(
+            np.array(self.position - soundwave.get_origin_position()))
+
+        range_last_time_step = np.linalg.norm(
+            np.array(self.last_position - soundwave.get_origin_position()))
         dRangeReceiver = range_current_time_step - range_last_time_step
         dRangeSoundwave = soundwave.get_radius_current(
         ) - soundwave.get_radius_last()
 
-        if self.soundwave_is_in_range == True:  # if soundwave reached receiver and soundwave t-1 has not rechead receiver, calculate intersection with the help of interpolation
+        # if soundwave reached receiver and soundwave t-1 has not rechead receiver,
+        # calculate intersection with the help of interpolation
+        if self.soundwave_is_in_range == True:
             self.t_runtime = self.sim_time_last_step + (
                 self.sim_time_current - self.sim_time_last_step
             ) * (soundwave.get_radius_last() - range_last_time_step) / (
@@ -349,11 +323,8 @@ class modem:
         self.SOS = SOS
 
     # Helpfunction
-    def real_distance(self, receiving_time, anchor_position):
-
-        agent_position = np.array(self.position)
-
-        realDist = np.linalg.norm(np.array(anchor_position) - agent_position)
+    def real_distance(self, anchor_position):
+        realDist = np.linalg.norm(anchor_position - self.position)
         return realDist
 
     def update_position(self, position):
@@ -384,6 +355,3 @@ class modem:
 
     def get_soundwaves(self):
         return self.soundwave_list
-
-    def get_sw_counter(self):
-        return self.modem_id, self.sw_counter

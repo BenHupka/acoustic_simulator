@@ -43,6 +43,21 @@ def create_anchor_sim_node():
     )
 
 
+def create_anchor_node():
+    args = LaunchArgsDict()
+    args.add_vehicle_name_and_sim_time()
+    return Node(
+        package='acoustic_simulator',
+        executable='anchor_poses_node.py',
+        parameters=[
+            args,
+            LaunchConfiguration('acoustic_config_path'),
+        ],
+        output='screen',
+        emulate_tty=True,
+    )
+
+
 def create_ground_truth_distance_node():
     args = LaunchArgsDict()
     args.add_vehicle_name_and_sim_time()
@@ -90,6 +105,7 @@ def generate_launch_description():
         PushRosNamespace(LaunchConfiguration("vehicle_name")),
         create_anchor_sim_node(),
         create_ground_truth_distance_node(),
+        create_anchor_node(),
         create_rviz_robot_mesh_publisher(),
         create_rviz_node()
     ])

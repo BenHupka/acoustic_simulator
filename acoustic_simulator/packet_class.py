@@ -1,21 +1,14 @@
 #!/usr/bin/env python
-import json
-import os
+import numpy as np
 from acoustic_simulator.params import AcousticParams
 
 
 class packet:
 
-    def __init__(self, config: AcousticParams, tx_time, tx_pos, type, src, dst,
-                 time_diff, length):
+    def __init__(self, config: AcousticParams, tx_time: float,
+                 tx_pos: np.ndarray, type: str, src: str, dst: str,
+                 length: float):
         self.acoustic_params = config
-        # tmp = os.path.dirname(__file__)
-        # file_path_filter = os.path.join(tmp,
-        #                                 '../config/acoustic_config.json')
-        # f = open(file_path_filter)
-        # self.acoustic_config = json.load(f)
-        # f.close()
-
         self.tx_time = tx_time
         self.tx_pos = tx_pos
         self.length = length

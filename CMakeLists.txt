@@ -39,6 +39,7 @@ ament_python_install_package(${PROJECT_NAME})
 install(PROGRAMS
   nodes/sim_anchor_measurements_node.py
   nodes/ground_truth_distance_node.py
+  nodes/anchor_poses_node.py
   DESTINATION lib/${PROJECT_NAME}
 )
 
