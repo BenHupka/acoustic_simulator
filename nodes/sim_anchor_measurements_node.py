@@ -58,10 +58,11 @@ class SimulateAnchorMeasurementsNode(Node):
             pub = self.create_publisher(ModemOut, topic_name, qos_profile=1)
             self.modem_error_publisher_list.append(pub)
 
-        self.odometry_sub = self.create_subscription(Odometry,
-                                                     'ground_truth/odometry',
-                                                     self.on_odometry,
-                                                     qos_profile=1)
+        self.odometry_sub = self.create_subscription(
+            Odometry,
+            'ground_truth/modem/odometry',
+            self.on_odometry,
+            qos_profile=1)
 
         self.anchor_poses_sub = self.create_subscription(AnchorPoses,
                                                          'anchor_poses',
@@ -76,7 +77,6 @@ class SimulateAnchorMeasurementsNode(Node):
         t = self.get_clock().now().nanoseconds
         t = t * 1e-9  # convert time to seconds
         with self.lock:
-            # What about moving buoys etc?
             measurement = self.acoustic_sim.simulate(self.agent_position,
                                                      self.anchors, t)
 

@@ -19,12 +19,20 @@ def declare_launch_args(launch_description: LaunchDescription):
     declare_vehicle_name_and_sim_time(launch_description=launch_description)
 
     default_acoustic_config_path = get_package_share_path(
-        'acoustic_simulator') / 'config/modem_params.yaml'
+        'acoustic_simulator') / 'config/acoustic_params.yaml'
     action = DeclareLaunchArgument(
         name='acoustic_config_path',
         default_value=str(default_acoustic_config_path),
         description='Path to the acoustic simulation configuration .yaml file',
     )
+    launch_description.add_action(action)
+
+    default_vehicle_modem_config_file = get_package_share_path(
+        'acoustic_simulator') / 'config/modem_bluerov_default.yaml'
+    action = DeclareLaunchArgument(
+        name='tf_vehicle_modem_config_file',
+        description='TF config for agent modem file',
+        default_value=str(default_vehicle_modem_config_file))
     launch_description.add_action(action)
 
 
@@ -55,6 +63,19 @@ def create_anchor_node():
         ],
         output='screen',
         emulate_tty=True,
+    )
+
+
+def create_tf_publisher_modem_node():
+    args = LaunchArgsDict()
+    args.add_vehicle_name_and_sim_time()
+    return Node(
+        package="acoustic_simulator",
+        executable='tf_publisher_modem',
+        output='screen',
+        emulate_tty=True,
+        parameters=[args,
+                    LaunchConfiguration('tf_vehicle_modem_config_file')],
     )
 
 
@@ -105,6 +126,7 @@ def generate_launch_description():
         PushRosNamespace(LaunchConfiguration("vehicle_name")),
         create_anchor_sim_node(),
         create_ground_truth_distance_node(),
+        create_tf_publisher_modem_node(),
         create_anchor_node(),
         create_rviz_robot_mesh_publisher(),
         create_rviz_node()

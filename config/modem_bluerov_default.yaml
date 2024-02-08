@@ -1,0 +1,14 @@
+/**: # wildcard for the node name
+  ros__parameters:
+    has_modem: true
+    modem:  
+      # this pose is meant to be used for localization/consideration of modem pose in general
+      # this pose is NOT used for simulation of acoustic measurements
+      # for this, look here: hippo_simulation/hippo_sim/models/[vehicle]/urdf/[vehicle]_params.xacro
+      x: 0.0
+      y: 0.0
+      z: -0.3
+      qw: 1.0
+      qx: 0.0
+      qy: 0.0
+      qz: 0.0

@@ -1,0 +1,89 @@
+/**: # wildcard for the node name
+  ros__parameters:
+    # for now, (almost) identical parameters to Nils Sichert's code
+    acoustic_params:
+      type: setup                       #
+      packet_length_poll: 0.26624       # in seconds
+      packet_length_response: 0.45056   # in seconds
+      sos: 1500.0                       # speed of sound underwater, in m/s    
+      
+      algorithm: broadcast              # broadcast or alternating -- dann sollte das unten auch angepasst werden - in unterschiedliche files
+      time_out_alternating: 1.5         # 
+      poll_trigger: time                # time: time-triggered or time_and_last_ack: time and last-poll triggered
+      poll_interval: 3.0                # 
+      t_wp: 0.01226                     # 
+      t_wr: 0.0                         #
+      publish_delay: 0.0                # 'delay caused by data connection'
+      time_out: 0.2                     #
+      number_anchors: 4                 # number of anchors
+      frequency_acoustic_sim: 100.0     # Hz?
+      meas_noise_mean: 0.0              # mean of noise, using gaussian
+      meas_noise_std_dev: 0.0           # standard deviation of noise, using gaussian,
+
+    anchors: [anchor_1, anchor_2, anchor_3, anchor_4]
+
+    agent:
+      name: AUV
+      modem:
+        id: 0
+        delay_time: 0.0                 # delay before sending acknowledgement
+        packet_reception_rate: 1.0
+        destination_id: broadcast                  # brauchen wir das nochmal?
+        packet_type: TYPE_RANGING_POLL
+      position: 
+        x: 0.0
+        y: 0.0
+        z: 0.0
+
+    anchor_1:
+      name: anchor_1
+      modem:
+        id: 1
+        delay_time: 0.0
+        packet_reception_rate: 1.0
+        destination_id: broadcast
+        packet_type: TYPE_RANGING_ACK
+      position: 
+        x: -5.0
+        y: -5.0
+        z: -1.0
+
+    anchor_2:
+      name: anchor_2
+      modem:
+        id: 2
+        delay_time: 0.7
+        packet_reception_rate: 1.0
+        destination_id: broadcast
+        packet_type: TYPE_RANGING_ACK
+      position:
+        x: -5.0
+        y: 5.0
+        z: -1.0
+
+    anchor_3:
+      name: anchor_3
+      modem:
+        id: 3
+        delay_time: 1.4
+        packet_reception_rate: 1.0
+        destination_id: broadcast
+        packet_type: TYPE_RANGING_ACK
+      position:
+        x: 5.0
+        y: 5.0
+        z: -1.0
+
+    anchor_4:
+      name: anchor_4
+      modem:
+        id: 4
+        delay_time: 2.1
+        packet_reception_rate: 1.0
+        destination_id: broadcast
+        packet_type: TYPE_RANGING_ACK
+      position:
+        x: 5.0
+        y: -5.0
+        z: -1.0
+
