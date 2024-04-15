@@ -2,11 +2,13 @@
 import math
 import rclpy
 from rclpy.node import Node
-from geometry_msgs.msg import PoseStamped, Pose
+from geometry_msgs.msg import Pose
 from nav_msgs.msg import Odometry
 from hippo_msgs.msg import AnchorPoses, AnchorPose
 from std_msgs.msg import Float64
-from rcl_interfaces.msg import ParameterType
+
+# This node publishes ground truth distances between anchor i and agent
+# for simpler degugging
 
 
 class GroundTruthNode(Node):

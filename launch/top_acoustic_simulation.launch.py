@@ -66,19 +66,6 @@ def create_anchor_node():
     )
 
 
-def create_tf_publisher_modem_node():
-    args = LaunchArgsDict()
-    args.add_vehicle_name_and_sim_time()
-    return Node(
-        package="acoustic_simulator",
-        executable='tf_publisher_modem',
-        output='screen',
-        emulate_tty=True,
-        parameters=[args,
-                    LaunchConfiguration('tf_vehicle_modem_config_file')],
-    )
-
-
 def create_ground_truth_distance_node():
     args = LaunchArgsDict()
     args.add_vehicle_name_and_sim_time()
@@ -126,7 +113,6 @@ def generate_launch_description():
         PushRosNamespace(LaunchConfiguration("vehicle_name")),
         create_anchor_sim_node(),
         create_ground_truth_distance_node(),
-        create_tf_publisher_modem_node(),
         create_anchor_node(),
         create_rviz_robot_mesh_publisher(),
         create_rviz_node()

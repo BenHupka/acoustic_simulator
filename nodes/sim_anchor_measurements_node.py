@@ -48,7 +48,7 @@ class SimulateAnchorMeasurementsNode(Node):
         self.modem_publisher_list = []
         for i in range(self.number_anchors):
             topic_name = 'modem_' + str(
-                i + 1)  # TODO: fix modem ids starting at 1
+                i + 1)  # TODO? - fix index mess, modems starting at 1
             pub = self.create_publisher(ModemOut, topic_name, qos_profile=1)
             self.modem_publisher_list.append(pub)
 
@@ -58,11 +58,10 @@ class SimulateAnchorMeasurementsNode(Node):
             pub = self.create_publisher(ModemOut, topic_name, qos_profile=1)
             self.modem_error_publisher_list.append(pub)
 
-        self.odometry_sub = self.create_subscription(
-            Odometry,
-            'ground_truth/modem/odometry',
-            self.on_odometry,
-            qos_profile=1)
+        self.odometry_sub = self.create_subscription(Odometry,
+                                                     'ground_truth/odometry',
+                                                     self.on_odometry,
+                                                     qos_profile=1)
 
         self.anchor_poses_sub = self.create_subscription(AnchorPoses,
                                                          'anchor_poses',
@@ -124,7 +123,7 @@ class SimulateAnchorMeasurementsNode(Node):
         self.modem_publisher_list[id - 1].publish(msg)
 
     def send_distance_error(self, id: int, error: float, t: float):
-        # TODO: add 'error' entry to ModemOut instead
+        # TODO: add 'error' entry to ModemOut instead?
         msg = ModemOut()
         msg.header = self.fill_header_timestamp(t)
         msg.distance = error

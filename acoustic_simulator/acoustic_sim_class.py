@@ -63,7 +63,6 @@ class acousticSimulation:
 
     def update_soundwaves(self, dt: float):
         sos = self.acoustic_params.sos
-        # self.logger.info(f'Number of soundwaves: {len(self.soundwave_list)}')
         for soundwave in self.soundwave_list:
             soundwave.update(dt, sos)
 
@@ -94,7 +93,6 @@ class acousticSimulation:
                 modem.set_new_measurement_flag(False)
                 self.new_dst(measurement["ModemID"])
                 self.set_dst_counter()
-                # self.logger.info(f'Measurement received: {meas}')
         return measurement
 
     def delete_soundwave(self):
@@ -139,7 +137,6 @@ class acousticSimulation:
             )
             anchor_list.append(anchor_modem)
             self.anchor_id_list.append(anchor.modem.id)
-            # self.logger.info(f'Adding modem with id {anchor.modem.id}')
 
         return anchor_list
 

@@ -7,6 +7,11 @@ from hippo_msgs.msg import AnchorPoses, AnchorPose
 from visualization_msgs.msg import MarkerArray, Marker
 from acoustic_simulator.params import read_params_recursion, AnchorParams, ModemParams, PositionParams
 
+# This node publishes anchor poses + markers for rviz visualization
+# For now, the anchor poses are static and read from config file
+
+# Potentially, this could be extended to take into account moving anchors
+
 
 class AnchorPosesNode(Node):
 
