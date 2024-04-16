@@ -16,7 +16,7 @@
       publish_delay: 0.0                # 'delay caused by data connection'
       time_out: 0.2                     #
       number_anchors: 4                 # number of anchors
-      frequency_acoustic_sim: 100.0     # Hz?
+      frequency_acoustic_sim: 100.0     # Hz
       meas_noise_mean: 0.0              # mean of noise, using gaussian
       meas_noise_std_dev: 0.0           # standard deviation of noise, using gaussian,
 

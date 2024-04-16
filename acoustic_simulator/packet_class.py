@@ -9,13 +9,13 @@ class packet:
                  tx_pos: np.ndarray, type: str, src: str, dst: str,
                  length: float):
         self.acoustic_params = config
-        self.tx_time = tx_time
-        self.tx_pos = tx_pos
-        self.length = length
-        self.anchor_prc_time = 0
-        self.type = type
-        self.src = src
-        self.dst = dst
+        self.tx_time = tx_time  # Erstellungszeit
+        self.tx_pos = tx_pos  # Erstellungsort
+        self.length = length  # Länge des Pakets [s]
+        self.anchor_prc_time = 0  # Verarbeitungszeit des Pakets, hier Annahme Null
+        self.type = type  # Poll oder Response
+        self.src = src  # Quell-ID
+        self.dst = dst  # Ziel-ID
         self.timeout = self.acoustic_params.time_out + self.tx_time  # timeout aus configfile
 
     def get_packet_dict(self):
