@@ -57,8 +57,8 @@ class acousticSimulation:
 
         # update agent position, soundwaves for agent modem
         self.update_agent_modem(agent_position)
-        # update soundwaves for anchor modems
-        self.update_anchor_modems()
+        # update anchor position and soundwaves for anchor modems
+        self.update_anchor_modems(anchors)
         return self.get_modem_measurement()  # measurement, is what type?!
 
     def update_soundwaves(self, dt: float):
@@ -75,9 +75,13 @@ class acousticSimulation:
             if ret is not None:
                 self.soundwave_list.append(ret)
 
-    def update_anchor_modems(self):
-        for modem in self.anchor_modem_list:
-            ret = modem.update(modem.getPosition(), self.soundwave_list, self.t,
+    def update_anchor_modems(self, anchors):
+        for i, modem in enumerate(self.anchor_modem_list):
+            position = np.array([
+                anchors[i].position.x, anchors[i].position.y,
+                anchors[i].position.z
+            ]).reshape((3, 1))  # get anchor position from anchors list
+            ret = modem.update(position, self.soundwave_list, self.t,
                                self.acoustic_params.sos, self.AnchorDst)
             if ret is not None:
                 self.soundwave_list.append(ret)

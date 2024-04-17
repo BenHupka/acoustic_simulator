@@ -8,15 +8,15 @@ from visualization_msgs.msg import MarkerArray, Marker
 from acoustic_simulator.params import read_params_recursion, AnchorParams, ModemParams, PositionParams
 
 # This node publishes anchor poses + markers for rviz visualization
-# For now, the anchor poses are static and read from config file
-
-# Potentially, this could be extended to take into account moving anchors
+# Initial anchor poses read from config file, the anchor poses can be dynamically changed in on_anchor_timer
 
 
 class AnchorPosesNode(Node):
 
     def __init__(self, node_name):
         super().__init__(node_name=node_name)
+
+        self.start_time = self.get_clock().now()
 
         self.declare_parameter('anchors', rclpy.Parameter.Type.STRING_ARRAY)
         self.anchors = self.init_anchor_params(
@@ -34,6 +34,12 @@ class AnchorPosesNode(Node):
             timer_period_sec=(1 / 30.0), callback=self.on_anchor_timer)
 
     def on_anchor_timer(self):
+        '''now = self.get_clock().now()
+        time = now - self.start_time
+        anchor1 = self.anchors[0]
+        anchor1.position.x = -5.0 + math.sin(
+            time.nanoseconds * 1e-9 * 2 * math.pi / 20)'''
+
         self.publish_anchor_poses(self.anchors)
         self.publish_rviz_anchors(self.anchors)
 
